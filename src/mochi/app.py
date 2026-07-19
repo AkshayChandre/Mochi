@@ -1,4 +1,4 @@
-"""Integrated app: face window with the voice pipeline running beside it."""
+"""Integrated app: face window, voice pipeline, and robot sounds in one process."""
 
 from __future__ import annotations
 
@@ -9,19 +9,51 @@ import pygame as pg
 from mochi.brain.client import BrainClient, BrainOfflineError
 from mochi.constants import FPS, SIZE, STATE_EMOTION
 from mochi.face.engine import MochiFace
-from mochi.voice.console import ConsoleIn, ConsoleOut, EnterWake
 from mochi.voice.pipeline import State, VoicePipeline
 
 
-def start_voice(face: MochiFace) -> None:
-    def apply(state: State) -> None:
-        face.set_emotion(STATE_EMOTION[state.value])
+class InstantWake:
+    def wait(self) -> None:
+        pass
 
-    pipeline = VoicePipeline(EnterWake(), ConsoleIn(), BrainClient(), ConsoleOut(), apply)
+
+def make_apply(face: MochiFace, brain: BrainClient, sounds=None):
+    def apply(state: State) -> None:
+        if sounds is not None:
+            sounds.on_state(state)
+        face.set_speaking(state == State.SPEAKING)
+        emotion = brain.last_emotion if state == State.SPEAKING else STATE_EMOTION[state.value]
+        face.set_emotion(emotion)
+
+    return apply
+
+
+def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
+    try:
+        from mochi.voice.sounds import BOOT_SOUND, RobotSounds
+        from mochi.voice.stt import WhisperTranscriber
+        from mochi.voice.tts import KidRobotVoice
+
+        sounds = RobotSounds()
+        stt = WhisperTranscriber()
+        tts = KidRobotVoice()
+    except Exception as err:
+        print(f"audio unavailable: {err}")
+        print("enable it with: pip install -e .[audio]  (see README) — using console mode")
+        from mochi.voice.console import ConsoleIn, ConsoleOut, EnterWake
+
+        return VoicePipeline(EnterWake(), ConsoleIn(), brain, ConsoleOut(), make_apply(face, brain))
+
+    sounds.play(BOOT_SOUND)
+    return VoicePipeline(InstantWake(), stt, brain, tts, make_apply(face, brain, sounds))
+
+
+def start_voice(face: MochiFace) -> None:
+    brain = BrainClient()
 
     def loop() -> None:
         try:
-            pipeline.run()
+            build_pipeline(face, brain).run()
         except BrainOfflineError as err:
             print(f"error: {err}")
             face.set_emotion("sad")

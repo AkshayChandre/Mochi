@@ -61,6 +61,15 @@ def test_sleeping_suppresses_blink():
     assert face.blink_phase == "idle"
 
 
+def test_speaking_mode_renders(screen):
+    face = MochiFace()
+    face.set_speaking(True)
+    _settle(face, 30)
+    face.draw(screen)
+    face.set_speaking(False)
+    assert not face.speaking
+
+
 def test_mouse_gaze_tracks_target(screen):
     face = MochiFace()
     target = pg.Vector2(0.8, -0.4)

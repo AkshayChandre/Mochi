@@ -41,6 +41,18 @@ Development standards: see [CONTRIBUTING.md](CONTRIBUTING.md).
 Press **M** and move your mouse around — that's the presence effect the whole
 project is built on.
 
+### Enable audio (talking Mochi)
+
+```powershell
+pip install -e .[audio]
+python -m piper.download_voices en_US-amy-medium --data-dir voices
+mochi
+```
+
+Mochi boots with a chirp and starts listening immediately — just talk.
+Silence ends a conversation; speaking starts a new one. If audio setup is
+missing, `mochi` falls back to console mode automatically.
+
 ## Zero-cost open-source stack
 
 | Layer | Tool | License |

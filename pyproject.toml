@@ -19,6 +19,12 @@ dev = [
     "pytest>=8",
     "ruff>=0.4",
 ]
+audio = [
+    "numpy>=1.26",
+    "sounddevice>=0.4",
+    "faster-whisper>=1.0",
+    "piper-tts>=1.2",
+]
 
 [project.scripts]
 mochi = "mochi.app:main"

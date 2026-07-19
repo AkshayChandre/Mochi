@@ -31,6 +31,28 @@ def test_chat_sends_history_and_stores_reply(monkeypatch):
     assert bc.history[-1] == {"role": "assistant", "content": "hi there"}
 
 
+def test_emotion_tag_parsed_and_stripped(monkeypatch):
+    def fake_urlopen(req, timeout):
+        return FakeResponse(json.dumps({"message": {"content": "[excited] Let's go!"}}).encode())
+
+    monkeypatch.setattr(brain_client, "urlopen", fake_urlopen)
+    bc = BrainClient(host="test", port=1)
+    assert bc.chat("hi") == "Let's go!"
+    assert bc.last_emotion == "excited"
+    assert bc.history[-1]["content"] == "[excited] Let's go!"
+
+
+def test_missing_tag_defaults_to_happy(monkeypatch):
+    def fake_urlopen(req, timeout):
+        return FakeResponse(json.dumps({"message": {"content": "plain reply"}}).encode())
+
+    monkeypatch.setattr(brain_client, "urlopen", fake_urlopen)
+    bc = BrainClient(host="test", port=1)
+    bc.last_emotion = "sad"
+    assert bc.chat("hi") == "plain reply"
+    assert bc.last_emotion == "happy"
+
+
 def test_offline_raises_and_rolls_back_history(monkeypatch):
     def fake_urlopen(req, timeout):
         raise OSError("connection refused")
