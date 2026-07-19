@@ -6,6 +6,16 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Real audio I/O: microphone capture with VAD (`mochi.voice.audio`),
+  faster-whisper STT, Piper TTS with kid-robot pitch and tremolo.
+- Procedural robot sounds: boot chirp, listening blip, thinking beeps —
+  synthesized, no audio assets.
+- Conversation-driven emotions: the brain tags each reply with an emotion
+  that drives the face while speaking; talking mouth animation.
+- `mochi` now starts listening immediately on launch; console fallback when
+  audio dependencies are missing.
+
 ### Fixed
 - Conversations are now multi-turn: after replying, Mochi keeps listening
   for follow-ups; silence (empty input) ends the conversation instead of

@@ -7,7 +7,7 @@ from urllib.error import URLError
 from urllib.request import Request, urlopen
 
 from mochi.config import CONNECTIONS
-from mochi.constants import BRAIN_TIMEOUT, MAX_HISTORY, SYSTEM_PROMPT
+from mochi.constants import BRAIN_TIMEOUT, EMOTION_TAG, EMOTIONS, MAX_HISTORY, SYSTEM_PROMPT
 
 
 class BrainOfflineError(RuntimeError):
@@ -23,6 +23,7 @@ class BrainClient:
         self.url = f"http://{host}:{port}/api/chat"
         self.model = model or CONNECTIONS.llm_model
         self.history: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
+        self.last_emotion = "happy"
 
     def chat(self, text: str) -> str:
         self.history.append({"role": "user", "content": text})
@@ -36,7 +37,15 @@ class BrainClient:
             raise BrainOfflineError(f"brain unreachable at {self.url}") from err
         self.history.append({"role": "assistant", "content": reply})
         self.trim()
-        return reply
+        return self.extract_emotion(reply)
+
+    def extract_emotion(self, reply: str) -> str:
+        match = EMOTION_TAG.match(reply)
+        if match and match.group(1).lower() in EMOTIONS:
+            self.last_emotion = match.group(1).lower()
+            return reply[match.end() :].strip()
+        self.last_emotion = "happy"
+        return reply.strip()
 
     def trim(self) -> None:
         if len(self.history) > MAX_HISTORY:

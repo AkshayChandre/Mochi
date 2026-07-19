@@ -41,6 +41,9 @@ from mochi.constants import (
     STRETCH_CROSS,
     STRETCH_GAIN,
     STRETCH_LIMITS,
+    TALK_AMP,
+    TALK_BASE,
+    TALK_FREQ,
     WANDER_INTERVAL,
     WANDER_RADIUS,
 )
@@ -61,12 +64,16 @@ class MochiFace:
         self.blink = 1.0
         self.blink_phase = "idle"
         self.next_blink = random.uniform(*BLINK_INTERVAL)
+        self.speaking = False
         self.t = 0.0
 
     def set_emotion(self, name: str) -> None:
         if name not in EMOTIONS:
             raise ValueError(f"unknown emotion {name!r}")
         self.emotion = name
+
+    def set_speaking(self, speaking: bool) -> None:
+        self.speaking = speaking
 
     def update(self, dt: float, mouse_gaze: pg.Vector2 | None = None) -> None:
         self.t += dt
@@ -143,7 +150,10 @@ class MochiFace:
             rect = surf.get_rect(center=(cx + side * EYE_GAP + gx, cy - EYE_RAISE + gy))
             screen.blit(surf, rect)
 
-        self.draw_mouth(screen, cx, cy + MOUTH_OFFSET_Y + gy * 0.4, s["mouth"], color)
+        mouth_val = s["mouth"]
+        if self.speaking:
+            mouth_val = TALK_BASE + TALK_AMP * math.sin(self.t * TALK_FREQ)
+        self.draw_mouth(screen, cx, cy + MOUTH_OFFSET_Y + gy * 0.4, mouth_val, color)
 
     @staticmethod
     def draw_mouth(screen: pg.Surface, cx: float, cy: float, mouth: float, color: tuple) -> None:

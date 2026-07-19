@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, fields
 
 SIZE = 720
@@ -73,9 +74,13 @@ BRAIN_TIMEOUT = 120
 MAX_HISTORY = 40
 SYSTEM_PROMPT = (
     f"You are Mochi, a small desk companion robot owned by {OWNER_NAME}. "
-    "You are warm, curious, and playful. "
-    "Keep replies short and conversational, one to three sentences."
+    "You are warm, curious, and playful, like a cheerful kid robot. "
+    "Keep replies short and conversational, one to three sentences. "
+    "Start every reply with exactly one emotion tag from: "
+    "[happy] [excited] [sad] [surprised] [thinking] [neutral]. "
+    "Example: [happy] Hi Akshay! Nothing comes before the tag."
 )
+EMOTION_TAG = re.compile(r"^\s*\[(\w+)\]\s*")
 
 SPEECH_SECONDS_PER_CHAR = 0.03
 
@@ -85,3 +90,25 @@ STATE_EMOTION = {
     "thinking": "thinking",
     "speaking": "happy",
 }
+
+SAMPLE_RATE = 16000
+FRAME_SECONDS = 0.03
+SILENCE_RMS = 0.010
+SILENCE_END_SECONDS = 1.2
+CONVERSATION_WAIT_SECONDS = 8.0
+MAX_UTTERANCE_SECONDS = 20.0
+MIN_SPEECH_SECONDS = 0.3
+WHISPER_MODEL = "base.en"
+
+VOICE_NAME = "en_US-amy-medium"
+VOICES_DIR = "voices"
+PITCH_FACTOR = 1.22
+TREMOLO_HZ = 26.0
+TREMOLO_DEPTH = 0.10
+
+SOUND_SAMPLE_RATE = 22050
+THINK_BLIP_INTERVAL = 0.8
+
+TALK_FREQ = 13.0
+TALK_BASE = 0.55
+TALK_AMP = 0.45

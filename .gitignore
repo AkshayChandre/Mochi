@@ -22,6 +22,9 @@ Thumbs.db
 # secrets
 .env
 
+# downloaded voice models
+voices/
+
 # local artifacts
 *.log
 outputs/
