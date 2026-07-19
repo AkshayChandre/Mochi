@@ -8,11 +8,11 @@ class Wake:
 
 
 class Stt:
-    def __init__(self, text):
-        self.text = text
+    def __init__(self, *texts):
+        self.texts = list(texts)
 
     def listen(self):
-        return self.text
+        return self.texts.pop(0) if self.texts else ""
 
 
 class Brain:
@@ -32,24 +32,39 @@ class Tts:
         self.spoken.append(text)
 
 
-def build(text="hello"):
+def build(*texts):
     states = []
     brain, tts = Brain(), Tts()
-    pipe = VoicePipeline(Wake(), Stt(text), brain, tts, states.append)
+    pipe = VoicePipeline(Wake(), Stt(*texts), brain, tts, states.append)
     return pipe, brain, tts, states
 
 
-def test_full_turn():
+def test_single_turn_conversation():
     pipe, brain, tts, states = build("hello")
-    assert pipe.once() == "echo: hello"
+    assert pipe.converse() == "echo: hello"
     assert brain.asked == ["hello"]
     assert tts.spoken == ["echo: hello"]
-    assert states == [State.LISTENING, State.THINKING, State.SPEAKING, State.IDLE]
+    assert states == [
+        State.LISTENING,
+        State.THINKING,
+        State.SPEAKING,
+        State.LISTENING,
+        State.IDLE,
+    ]
 
 
-def test_empty_utterance_short_circuits():
-    pipe, brain, tts, states = build("   ")
-    assert pipe.once() == ""
+def test_multi_turn_conversation_without_rewake():
+    pipe, brain, tts, states = build("hi", "how are you")
+    assert pipe.converse() == "echo: how are you"
+    assert brain.asked == ["hi", "how are you"]
+    assert tts.spoken == ["echo: hi", "echo: how are you"]
+    assert states.count(State.LISTENING) == 3
+    assert states[-1] == State.IDLE
+
+
+def test_silence_ends_conversation():
+    pipe, brain, tts, states = build()
+    assert pipe.converse() == ""
     assert brain.asked == []
     assert tts.spoken == []
     assert states == [State.LISTENING, State.IDLE]

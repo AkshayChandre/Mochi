@@ -56,20 +56,22 @@ class VoicePipeline:
     def emotion(self) -> str:
         return STATE_EMOTION[self.state.value]
 
-    def once(self) -> str:
+    def converse(self) -> str:
         self.wake.wait()
-        self.set_state(State.LISTENING)
-        text = self.stt.listen().strip()
-        if not text:
-            self.set_state(State.IDLE)
-            return ""
-        self.set_state(State.THINKING)
-        reply = self.brain.chat(text)
-        self.set_state(State.SPEAKING)
-        self.tts.say(reply)
+        last = ""
+        while True:
+            self.set_state(State.LISTENING)
+            text = self.stt.listen().strip()
+            if not text:
+                break
+            self.set_state(State.THINKING)
+            reply = self.brain.chat(text)
+            self.set_state(State.SPEAKING)
+            self.tts.say(reply)
+            last = reply
         self.set_state(State.IDLE)
-        return reply
+        return last
 
     def run(self) -> None:
         while True:
-            self.once()
+            self.converse()
