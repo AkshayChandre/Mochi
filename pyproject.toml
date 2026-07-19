@@ -22,6 +22,7 @@ dev = [
 
 [project.scripts]
 mochi-face = "mochi.face.engine:main"
+mochi-voice = "mochi.voice.console:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

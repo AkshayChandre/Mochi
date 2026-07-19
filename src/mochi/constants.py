@@ -67,3 +67,19 @@ MOUTH_OFFSET_Y = 128
 MOUTH_VISIBLE_MIN = 0.08
 
 AUTOPILOT_INTERVAL = 3.5
+
+OWNER_NAME = "Akshay"
+BRAIN_TIMEOUT = 120
+MAX_HISTORY = 40
+SYSTEM_PROMPT = (
+    f"You are Mochi, a small desk companion robot owned by {OWNER_NAME}. "
+    "You are warm, curious, and playful. "
+    "Keep replies short and conversational, one to three sentences."
+)
+
+STATE_EMOTION = {
+    "idle": "neutral",
+    "listening": "surprised",
+    "thinking": "thinking",
+    "speaking": "happy",
+}
