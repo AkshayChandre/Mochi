@@ -17,6 +17,10 @@ Versioning: [Semantic Versioning](https://semver.org/).
   audio dependencies are missing.
 
 ### Fixed
+- Whisper pinned to CPU by default: faster-whisper auto-selected CUDA on
+  NVIDIA machines and crashed without the CUDA 12 runtime. Set
+  `WHISPER_DEVICE = "cuda"` in constants after installing
+  `nvidia-cublas-cu12` + `nvidia-cudnn-cu12` to opt back in.
 - Conversations are now multi-turn: after replying, Mochi keeps listening
   for follow-ups; silence (empty input) ends the conversation instead of
   requiring a re-wake every turn.
