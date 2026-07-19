@@ -6,6 +6,11 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- Conversations are now multi-turn: after replying, Mochi keeps listening
+  for follow-ups; silence (empty input) ends the conversation instead of
+  requiring a re-wake every turn.
+
 ### Added
 - App shell (`mochi` command): face window and voice pipeline in one
   process — pipeline states drive facial emotions live.
