@@ -7,6 +7,9 @@ Versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- App shell (`mochi` command): face window and voice pipeline in one
+  process — pipeline states drive facial emotions live.
+- `.gitattributes` enforcing LF line endings to stop CRLF diff churn.
 - Voice pipeline (`mochi.voice`): wake -> listen -> think -> speak state
   machine with pluggable components and face-emotion mapping.
 - Brain client (`mochi.brain`): Ollama chat with rolling history and offline

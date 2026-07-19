@@ -77,6 +77,8 @@ SYSTEM_PROMPT = (
     "Keep replies short and conversational, one to three sentences."
 )
 
+SPEECH_SECONDS_PER_CHAR = 0.03
+
 STATE_EMOTION = {
     "idle": "neutral",
     "listening": "surprised",

@@ -21,6 +21,7 @@ dev = [
 ]
 
 [project.scripts]
+mochi = "mochi.app:main"
 mochi-face = "mochi.face.engine:main"
 mochi-voice = "mochi.voice.console:main"
 

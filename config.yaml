@@ -1,7 +1,7 @@
 brain:
   host: 127.0.0.1
   port: 11434
-  model: qwen2.5:7b
+  model: qwen2.5:3b
 
 # redis:
 #   host: 127.0.0.1
