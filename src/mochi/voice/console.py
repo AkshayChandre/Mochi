@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import sys
+import time
 
 from mochi.brain.client import BrainClient, BrainOfflineError
+from mochi.constants import SPEECH_SECONDS_PER_CHAR
 from mochi.voice.pipeline import State, VoicePipeline
 
 
@@ -21,6 +23,7 @@ class ConsoleIn:
 class ConsoleOut:
     def say(self, text: str) -> None:
         print(f"mochi> {text}")
+        time.sleep(len(text) * SPEECH_SECONDS_PER_CHAR)
 
 
 def show_state(state: State) -> None:

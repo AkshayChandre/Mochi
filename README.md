@@ -14,7 +14,9 @@ Runs on your PC now; the same file runs on the Pi's 720x720 round display later.
 py -m venv .venv
 .venv\Scripts\activate
 pip install -e .[dev]
-mochi-face
+mochi                     # face + voice together (needs Ollama running)
+mochi-face                # face only
+mochi-voice               # terminal chat only
 ```
 
 ### Repo layout

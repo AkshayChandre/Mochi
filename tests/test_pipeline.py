@@ -1,3 +1,4 @@
+from mochi.constants import EMOTIONS, STATE_EMOTION
 from mochi.voice.pipeline import State, VoicePipeline
 
 
@@ -59,3 +60,8 @@ def test_state_emotion_mapping():
     assert pipe.emotion() == "neutral"
     pipe.set_state(State.THINKING)
     assert pipe.emotion() == "thinking"
+
+
+def test_every_state_maps_to_a_real_emotion():
+    assert set(STATE_EMOTION) == {s.value for s in State}
+    assert set(STATE_EMOTION.values()) <= set(EMOTIONS)
