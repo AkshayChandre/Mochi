@@ -1,5 +1,3 @@
-"""Voice interaction loop: wake -> listen -> think -> speak."""
-
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -8,29 +6,23 @@ from typing import Protocol
 
 from mochi.constants import STATE_EMOTION
 
-
 class State(str, Enum):
     IDLE = "idle"
     LISTENING = "listening"
     THINKING = "thinking"
     SPEAKING = "speaking"
 
-
 class WakeSource(Protocol):
     def wait(self) -> None: ...
-
 
 class Transcriber(Protocol):
     def listen(self) -> str: ...
 
-
 class Brain(Protocol):
     def chat(self, text: str) -> str: ...
 
-
 class Speaker(Protocol):
     def say(self, text: str) -> None: ...
-
 
 class VoicePipeline:
     def __init__(

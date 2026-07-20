@@ -1,5 +1,3 @@
-"""HTTP client for the local Ollama brain server."""
-
 from __future__ import annotations
 
 import json
@@ -9,10 +7,8 @@ from urllib.request import Request, urlopen
 from mochi.config import CONNECTIONS
 from mochi.constants import BRAIN_TIMEOUT, EMOTION_TAG, EMOTIONS, MAX_HISTORY, SYSTEM_PROMPT
 
-
 class BrainOfflineError(RuntimeError):
     pass
-
 
 class BrainClient:
     def __init__(

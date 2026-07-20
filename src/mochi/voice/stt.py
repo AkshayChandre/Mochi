@@ -1,10 +1,7 @@
-"""Speech-to-text via faster-whisper."""
-
 from __future__ import annotations
 
 from mochi.constants import WHISPER_DEVICE, WHISPER_MODEL
 from mochi.voice.audio import Recorder
-
 
 class WhisperTranscriber:
     def __init__(self, recorder: Recorder | None = None) -> None:

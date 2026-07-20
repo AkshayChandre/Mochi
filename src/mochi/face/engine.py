@@ -1,5 +1,3 @@
-"""Mochi face engine: procedural emotions, gaze, blink. Same file on PC and Pi."""
-
 from __future__ import annotations
 
 import math
@@ -48,10 +46,8 @@ from mochi.constants import (
     WANDER_RADIUS,
 )
 
-
 def ease(current: float, target: float, rate: float, dt: float) -> float:
     return current + (target - current) * (1.0 - math.exp(-rate * dt))
-
 
 class MochiFace:
     def __init__(self) -> None:
@@ -166,7 +162,6 @@ class MochiFace:
         ]
         pg.draw.lines(screen, color, False, pts, MOUTH_THICKNESS)
 
-
 def main() -> None:
     pg.init()
     screen = pg.display.set_mode((SIZE, SIZE))
@@ -214,7 +209,6 @@ def main() -> None:
         if frame_limit and frame >= frame_limit:
             pg.quit()
             return
-
 
 if __name__ == "__main__":
     main()

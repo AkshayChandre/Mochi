@@ -7,6 +7,10 @@ Versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Printable shell v1 (`hardware/cad`): parametric OpenSCAD, NOVA-style —
+  head, body, neck, base, ears, arms, tread pods, glowing heart inlay,
+  with screw bosses throughout. Electronics dims are placeholders until
+  parts are measured.
 - Real audio I/O: microphone capture with VAD (`mochi.voice.audio`),
   faster-whisper STT, Piper TTS with kid-robot pitch and tremolo.
 - Procedural robot sounds: boot chirp, listening blip, thinking beeps —
