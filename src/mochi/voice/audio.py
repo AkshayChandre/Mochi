@@ -1,5 +1,3 @@
-"""Microphone capture with energy-based voice activity detection."""
-
 from __future__ import annotations
 
 import numpy as np
@@ -14,10 +12,8 @@ from mochi.constants import (
     SILENCE_RMS,
 )
 
-
 def rms(frame: np.ndarray) -> float:
     return float(np.sqrt(np.mean(np.square(frame))))
-
 
 class Recorder:
     def __init__(self) -> None:

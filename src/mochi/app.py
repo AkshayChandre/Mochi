@@ -1,9 +1,6 @@
-"""Integrated app: face window, voice pipeline, and robot sounds in one process."""
-
 from __future__ import annotations
 
 import threading
-
 import pygame as pg
 
 from mochi.brain.client import BrainClient, BrainOfflineError
@@ -11,11 +8,9 @@ from mochi.constants import FPS, SIZE, STATE_EMOTION
 from mochi.face.engine import MochiFace
 from mochi.voice.pipeline import State, VoicePipeline
 
-
 class InstantWake:
     def wait(self) -> None:
         pass
-
 
 def make_apply(face: MochiFace, brain: BrainClient, sounds=None):
     def apply(state: State) -> None:
@@ -26,7 +21,6 @@ def make_apply(face: MochiFace, brain: BrainClient, sounds=None):
         face.set_emotion(emotion)
 
     return apply
-
 
 def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
     try:
@@ -47,7 +41,6 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
     sounds.play(BOOT_SOUND)
     return VoicePipeline(InstantWake(), stt, brain, tts, make_apply(face, brain, sounds))
 
-
 def start_voice(face: MochiFace) -> None:
     brain = BrainClient()
 
@@ -59,7 +52,6 @@ def start_voice(face: MochiFace) -> None:
             face.set_emotion("sad")
 
     threading.Thread(target=loop, daemon=True).start()
-
 
 def main() -> None:
     pg.init()
@@ -78,7 +70,6 @@ def main() -> None:
         face.draw(screen)
         pg.display.set_caption(f"Mochi — {face.emotion}")
         pg.display.flip()
-
 
 if __name__ == "__main__":
     main()

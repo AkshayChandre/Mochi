@@ -1,11 +1,9 @@
 import io
 import json
-
 import pytest
 
 from mochi.brain import client as brain_client
 from mochi.brain.client import BrainClient, BrainOfflineError
-
 
 class FakeResponse(io.BytesIO):
     def __enter__(self):
@@ -13,7 +11,6 @@ class FakeResponse(io.BytesIO):
 
     def __exit__(self, *args):
         return False
-
 
 def test_chat_sends_history_and_stores_reply(monkeypatch):
     captured = {}
@@ -30,7 +27,6 @@ def test_chat_sends_history_and_stores_reply(monkeypatch):
     assert captured["payload"]["messages"][-1] == {"role": "user", "content": "hello"}
     assert bc.history[-1] == {"role": "assistant", "content": "hi there"}
 
-
 def test_emotion_tag_parsed_and_stripped(monkeypatch):
     def fake_urlopen(req, timeout):
         return FakeResponse(json.dumps({"message": {"content": "[excited] Let's go!"}}).encode())
@@ -40,7 +36,6 @@ def test_emotion_tag_parsed_and_stripped(monkeypatch):
     assert bc.chat("hi") == "Let's go!"
     assert bc.last_emotion == "excited"
     assert bc.history[-1]["content"] == "[excited] Let's go!"
-
 
 def test_missing_tag_defaults_to_happy(monkeypatch):
     def fake_urlopen(req, timeout):
@@ -52,7 +47,6 @@ def test_missing_tag_defaults_to_happy(monkeypatch):
     assert bc.chat("hi") == "plain reply"
     assert bc.last_emotion == "happy"
 
-
 def test_offline_raises_and_rolls_back_history(monkeypatch):
     def fake_urlopen(req, timeout):
         raise OSError("connection refused")
@@ -62,7 +56,6 @@ def test_offline_raises_and_rolls_back_history(monkeypatch):
     with pytest.raises(BrainOfflineError):
         bc.chat("hello")
     assert len(bc.history) == 1
-
 
 def test_history_trim_keeps_system_and_newest(monkeypatch):
     monkeypatch.setattr(brain_client, "MAX_HISTORY", 5)

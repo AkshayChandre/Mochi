@@ -13,7 +13,6 @@ BEZEL = (30, 34, 42)
 EASE_RATE = 9.0
 GAZE_RANGE = (46, 34)
 
-
 @dataclass(frozen=True)
 class Emotion:
     w: float = 150.0
@@ -26,7 +25,6 @@ class Emotion:
     bounce: float = 0.0
     dim: float = 1.0
     gaze_lock: tuple[float, float] | None = None
-
 
 EMOTIONS: dict[str, Emotion] = {
     "neutral": Emotion(),

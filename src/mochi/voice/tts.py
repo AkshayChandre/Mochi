@@ -1,14 +1,9 @@
-"""Kid-robot text-to-speech: Piper voice, pitched up, with a light robotic tremolo."""
-
 from __future__ import annotations
 
 import math
 from pathlib import Path
-
 import numpy as np
-
 from mochi.constants import PITCH_FACTOR, TREMOLO_DEPTH, TREMOLO_HZ, VOICE_NAME, VOICES_DIR
-
 
 class KidRobotVoice:
     def __init__(self) -> None:
