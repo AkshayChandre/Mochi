@@ -7,18 +7,12 @@ import pygame as pg
 from mochi.brain.client import BrainClient, BrainOfflineError
 from mochi.constants import FPS, SIZE, STATE_EMOTION
 from mochi.face.engine import MochiFace
-from mochi.voice.pipeline import State, VoicePipeline, find_wake
+from mochi.voice.pipeline import State, VoicePipeline
 
 
-class TranscriptWake:
-    def __init__(self, stt) -> None:
-        self.stt = stt
-
+class InstantWake:
     def wait(self) -> str:
-        while True:
-            heard = find_wake(self.stt.listen())
-            if heard is not None:
-                return heard
+        return ""
 
 
 def make_apply(face: MochiFace, brain: BrainClient, sounds=None):
@@ -68,9 +62,8 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
         )
 
     sounds.play(BOOT_SOUND)
-    print("say 'mochi' to wake me")
     return VoicePipeline(
-        TranscriptWake(stt),
+        InstantWake(),
         stt,
         brain,
         tts,

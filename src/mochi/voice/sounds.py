@@ -52,8 +52,6 @@ class RobotSounds:
             threading.Thread(target=self.think_loop, daemon=True).start()
         elif state != State.THINKING:
             self.thinking = False
-        if state == State.LISTENING and self.prev == State.IDLE:
-            self.play(BOOT_SOUND)
-        elif state == State.LISTENING and self.prev == State.SPEAKING:
+        if state == State.LISTENING and self.prev == State.SPEAKING:
             self.play(ACK_BLIP)
         self.prev = state
