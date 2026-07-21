@@ -29,7 +29,7 @@ def make_apply(face: MochiFace, brain: BrainClient, sounds=None):
 def make_intercept(face: MochiFace):
     def intercept(text: str) -> str | None:
         low = text.lower()
-        if "show" in low and ("expression" in low or "emotion" in low):
+        if "expression" in low or "emotion" in low:
             face.play_parade()
             return "Watch my face!"
         return None

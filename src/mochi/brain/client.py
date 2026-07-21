@@ -30,6 +30,11 @@ def split_sentences(text: str) -> tuple[list[str], str]:
     return [s for s in out if s], text[start:]
 
 
+def clean_speech(text: str) -> str:
+    kept = "".join(ch for ch in text if ord(ch) < 0x2500)
+    return kept.strip() if any(ch.isalpha() for ch in kept) else ""
+
+
 def clean_block(block: str) -> str:
     lines = block.strip("\n").splitlines()
     if lines and CODE_LANG_RE.fullmatch(lines[0].strip()):
@@ -103,7 +108,9 @@ class BrainClient:
                     else:
                         speak_buf += pending
                         sentences, speak_buf = split_sentences(speak_buf)
-                        yield from sentences
+                        for sentence in sentences:
+                            if spoken := clean_speech(sentence):
+                                yield spoken
                     pending = ""
                     if data.get("done"):
                         break
@@ -112,7 +119,7 @@ class BrainClient:
             raise BrainOfflineError(f"brain unreachable at {self.url}") from err
         if in_fence and fence_buf.strip():
             self.last_blocks.append(clean_block(fence_buf))
-        if tail := speak_buf.strip():
+        if tail := clean_speech(speak_buf):
             yield tail
         self.history.append({"role": "assistant", "content": raw})
         self.trim()

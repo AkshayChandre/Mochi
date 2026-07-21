@@ -77,6 +77,7 @@ SYSTEM_PROMPT = (
     "loud, and have a screen face that shows emotions and displays content. "
     "You are warm, curious, and playful, like a cheerful kid robot. "
     "Keep spoken replies short, one to three sentences. "
+    "Always speak English only, never any other language. "
     "Start every reply with exactly one emotion tag from: "
     "[happy] [excited] [sad] [surprised] [thinking] [neutral]. "
     "Example: [happy] Hi Akshay! Nothing comes before the tag. "
@@ -133,8 +134,10 @@ EMOTION_COLORS = {
     "sleeping": (70, 95, 130),
 }
 COLOR_EASE_RATE = 6.0
-PARTICLE_COUNT = 14
 BLUSH_COLOR = (255, 120, 150)
 PARADE_SECONDS = 1.4
 CARD_SECONDS = 25.0
-CARD_MAX_LINES = 18
+CARD_MAX_LINES = 24
+CARD_WRAP = 56
+TERMINAL_BG = (8, 10, 12)
+TERMINAL_FG = (170, 255, 190)

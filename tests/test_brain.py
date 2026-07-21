@@ -23,6 +23,12 @@ def stream_lines(*pieces):
     return FakeResponse("\n".join(lines).encode())
 
 
+def test_clean_speech_drops_non_latin():
+    assert brain_client.clean_speech("你好世界") == ""
+    assert "Hello" in brain_client.clean_speech("Hello 你好 there")
+    assert brain_client.clean_speech("Bonjour!") == "Bonjour!"
+
+
 def test_split_sentences():
     done, rest = split_sentences("One. Two! Thr")
     assert done == ["One.", "Two!"]

@@ -20,6 +20,7 @@ from mochi.constants import (
     BREATH_PERIOD,
     CARD_MAX_LINES,
     CARD_SECONDS,
+    CARD_WRAP,
     COLOR_EASE_RATE,
     DOUBLE_BLINK_CHANCE,
     DOUBLE_BLINK_DELAY,
@@ -39,7 +40,6 @@ from mochi.constants import (
     MOUTH_VISIBLE_MIN,
     NUMERIC_FIELDS,
     PARADE_SECONDS,
-    PARTICLE_COUNT,
     SIZE,
     SQUINT_FACTOR,
     STRETCH_CROSS,
@@ -48,6 +48,8 @@ from mochi.constants import (
     TALK_AMP,
     TALK_BASE,
     TALK_FREQ,
+    TERMINAL_BG,
+    TERMINAL_FG,
     WANDER_INTERVAL,
     WANDER_RADIUS,
 )
@@ -75,15 +77,6 @@ class MochiFace:
         self.card_lines: list[str] = []
         self.card_until = 0.0
         self.fonts: dict[int, pg.font.Font] = {}
-        self.particles = [
-            [
-                random.uniform(0, SIZE),
-                random.uniform(0, SIZE),
-                random.uniform(8, 22),
-                random.uniform(0, math.tau),
-            ]
-            for _ in range(PARTICLE_COUNT)
-        ]
         self.t = 0.0
 
     def set_emotion(self, name: str) -> None:
@@ -99,7 +92,14 @@ class MochiFace:
         self.parade_t = 0.0
 
     def show_card(self, text: str) -> None:
-        self.card_lines = [ln[:64] for ln in text.splitlines()][:CARD_MAX_LINES]
+        lines: list[str] = []
+        for raw in text.splitlines():
+            if not raw:
+                lines.append("")
+            while raw:
+                lines.append(raw[:CARD_WRAP])
+                raw = raw[CARD_WRAP:]
+        self.card_lines = lines[:CARD_MAX_LINES]
         self.card_until = self.t + CARD_SECONDS
 
     def font(self, size: int) -> pg.font.Font:
@@ -120,11 +120,6 @@ class MochiFace:
         target = EMOTION_COLORS[self.emotion]
         for i in range(3):
             self.rgb[i] = ease(self.rgb[i], target[i], COLOR_EASE_RATE, dt)
-        for p in self.particles:
-            p[1] -= p[2] * dt
-            p[0] += math.sin(self.t * 0.8 + p[3]) * 14 * dt
-            if p[1] < -4:
-                p[0], p[1] = random.uniform(0, SIZE), SIZE + 4
         self.update_gaze(dt, spec, mouse_gaze)
         self.update_blink(dt, self.emotion == "sleeping")
 
@@ -161,15 +156,14 @@ class MochiFace:
                 self.next_blink = DOUBLE_BLINK_DELAY if double else random.uniform(*BLINK_INTERVAL)
 
     def draw(self, screen: pg.Surface) -> None:
+        if self.card_lines and self.t < self.card_until:
+            self.draw_terminal(screen)
+            return
         s = self.state
         cx, cy = SIZE / 2, SIZE / 2
         color = tuple(int(self.rgb[i] * s["dim"]) for i in range(3))
         screen.fill(BACKGROUND)
         pg.draw.circle(screen, BEZEL, (cx, cy), SIZE // 2 - 4, 3)
-
-        dust = tuple(int(c * 0.35) for c in color)
-        for p in self.particles:
-            pg.draw.circle(screen, dust, (int(p[0]), int(p[1])), 2)
 
         breathe = 1.0 + BREATH_AMP * math.sin(self.t * math.tau / BREATH_PERIOD)
         bounce_y = -abs(math.sin(self.t * BOUNCE_FREQ)) * BOUNCE_AMP * s["bounce"]
@@ -218,20 +212,17 @@ class MochiFace:
             mouth_val = TALK_BASE + TALK_AMP * math.sin(self.t * TALK_FREQ)
         self.draw_mouth(screen, cx, cy + MOUTH_OFFSET_Y + gy * 0.4, mouth_val, color)
 
-        if self.card_lines and self.t < self.card_until:
-            self.draw_card(screen, color)
-
-    def draw_card(self, screen: pg.Surface, color: tuple) -> None:
-        pad = 36
-        h = 34 + 20 * len(self.card_lines)
-        rect = pg.Rect(pad, SIZE - h - pad, SIZE - 2 * pad, h)
-        panel = pg.Surface(rect.size, pg.SRCALPHA)
-        pg.draw.rect(panel, (16, 20, 28, 235), panel.get_rect(), border_radius=14)
-        pg.draw.rect(panel, (*color, 255), panel.get_rect(), 2, border_radius=14)
-        f = self.font(15)
+    def draw_terminal(self, screen: pg.Surface) -> None:
+        screen.fill(TERMINAL_BG)
+        header = self.font(14).render("mochi:~/screen", True, (120, 140, 150))
+        screen.blit(header, (24, 16))
+        pg.draw.line(screen, (40, 48, 56), (0, 42), (SIZE, 42), 1)
+        f = self.font(18)
         for i, line in enumerate(self.card_lines):
-            panel.blit(f.render(line, True, (220, 230, 240)), (16, 12 + 20 * i))
-        screen.blit(panel, rect)
+            screen.blit(f.render(line, True, TERMINAL_FG), (24, 58 + 24 * i))
+        if int(self.t * 2) % 2 == 0:
+            y = 58 + 24 * len(self.card_lines)
+            pg.draw.rect(screen, TERMINAL_FG, (24, y + 4, 10, 18))
 
     @staticmethod
     def draw_mouth(screen: pg.Surface, cx: float, cy: float, mouth: float, color: tuple) -> None:
