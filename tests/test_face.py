@@ -6,7 +6,9 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 import pygame as pg
 import pytest
+
 from mochi.face.engine import EMOTIONS, SIZE, MochiFace
+
 
 @pytest.fixture(scope="module")
 def screen():

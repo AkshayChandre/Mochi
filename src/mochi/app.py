@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import threading
+
 import pygame as pg
 
 from mochi.brain.client import BrainClient, BrainOfflineError
 from mochi.constants import FPS, SIZE, STATE_EMOTION
 from mochi.face.engine import MochiFace
 from mochi.voice.pipeline import State, VoicePipeline
+
 
 class InstantWake:
     def wait(self) -> None:

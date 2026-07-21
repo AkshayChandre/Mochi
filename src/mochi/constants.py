@@ -70,6 +70,7 @@ AUTOPILOT_INTERVAL = 3.5
 OWNER_NAME = "Akshay"
 BRAIN_TIMEOUT = 120
 MAX_HISTORY = 40
+KEEP_ALIVE = "2h"
 SYSTEM_PROMPT = (
     f"You are Mochi, a small desk companion robot owned by {OWNER_NAME}. "
     "You are warm, curious, and playful, like a cheerful kid robot. "
@@ -92,7 +93,7 @@ STATE_EMOTION = {
 SAMPLE_RATE = 16000
 FRAME_SECONDS = 0.03
 SILENCE_RMS = 0.010
-SILENCE_END_SECONDS = 1.2
+SILENCE_END_SECONDS = 0.9
 CONVERSATION_WAIT_SECONDS = 8.0
 MAX_UTTERANCE_SECONDS = 20.0
 MIN_SPEECH_SECONDS = 0.3

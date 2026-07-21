@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from enum import Enum
 from typing import Protocol
 
 from mochi.constants import STATE_EMOTION
+
 
 class State(str, Enum):
     IDLE = "idle"
@@ -12,17 +13,23 @@ class State(str, Enum):
     THINKING = "thinking"
     SPEAKING = "speaking"
 
+
 class WakeSource(Protocol):
     def wait(self) -> None: ...
+
 
 class Transcriber(Protocol):
     def listen(self) -> str: ...
 
+
 class Brain(Protocol):
-    def chat(self, text: str) -> str: ...
+    def chat_stream(self, text: str) -> Iterator[str]: ...
+
 
 class Speaker(Protocol):
     def say(self, text: str) -> None: ...
+    def flush(self) -> None: ...
+
 
 class VoicePipeline:
     def __init__(
@@ -50,19 +57,23 @@ class VoicePipeline:
 
     def converse(self) -> str:
         self.wake.wait()
-        last = ""
+        parts: list[str] = []
         while True:
             self.set_state(State.LISTENING)
             text = self.stt.listen().strip()
             if not text:
                 break
             self.set_state(State.THINKING)
-            reply = self.brain.chat(text)
-            self.set_state(State.SPEAKING)
-            self.tts.say(reply)
-            last = reply
+            spoke = False
+            for sentence in self.brain.chat_stream(text):
+                if not spoke:
+                    self.set_state(State.SPEAKING)
+                    spoke = True
+                self.tts.say(sentence)
+                parts.append(sentence)
+            self.tts.flush()
         self.set_state(State.IDLE)
-        return last
+        return " ".join(parts)
 
     def run(self) -> None:
         while True:

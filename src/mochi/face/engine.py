@@ -46,6 +46,7 @@ from mochi.constants import (
     WANDER_RADIUS,
 )
 
+
 def ease(current: float, target: float, rate: float, dt: float) -> float:
     return current + (target - current) * (1.0 - math.exp(-rate * dt))
 

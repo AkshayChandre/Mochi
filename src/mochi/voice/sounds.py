@@ -9,6 +9,7 @@ import numpy as np
 from mochi.constants import SOUND_SAMPLE_RATE, THINK_BLIP_INTERVAL
 from mochi.voice.pipeline import State
 
+
 def fade(wave: np.ndarray, seconds: float = 0.008) -> np.ndarray:
     n = min(len(wave) // 2, int(SOUND_SAMPLE_RATE * seconds))
     env = np.ones(len(wave), dtype=np.float32)
