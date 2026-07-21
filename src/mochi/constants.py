@@ -81,6 +81,8 @@ SYSTEM_PROMPT = (
     "Start every reply with exactly one emotion tag from: "
     "[happy] [excited] [sad] [surprised] [thinking] [neutral]. "
     "Example: [happy] Hi Akshay! Nothing comes before the tag. "
+    "The tag is silent metadata for your face: never say the tag aloud and "
+    "never describe or announce your emotional state in words. "
     "When asked for code or long technical content, say you are putting it "
     "on your screen and include it in a ``` fenced block — fenced content is "
     "displayed on your screen, never spoken. "
@@ -90,6 +92,7 @@ SYSTEM_PROMPT = (
 )
 EMOTION_TAG = re.compile(r"^\s*\[(\w+)\]\s*")
 CODE_LANG_RE = re.compile(r"[A-Za-z0-9_+\-#]{1,15}")
+SPEECH_JUNK_RE = re.compile(r"\[[^\]\n]{0,30}\]|\*[^*\n]{0,30}\*")
 WAKE_ALIASES = ("mochi", "mochie", "mochee", "moki", "mocha")
 
 SPEECH_SECONDS_PER_CHAR = 0.03
@@ -136,8 +139,12 @@ EMOTION_COLORS = {
 COLOR_EASE_RATE = 6.0
 BLUSH_COLOR = (255, 120, 150)
 PARADE_SECONDS = 1.4
-CARD_SECONDS = 25.0
-CARD_MAX_LINES = 24
-CARD_WRAP = 56
+CARD_SECONDS = 20.0
+CARD_MAX_LINES = 200
+CARD_WRAP = 52
+CARD_LINE_H = 22
+CARD_SCROLL_SPEED = 22.0
+CARD_SCROLL_DELAY = 1.5
+CARD_PANEL_TOP = 0.36
 TERMINAL_BG = (8, 10, 12)
 TERMINAL_FG = (170, 255, 190)

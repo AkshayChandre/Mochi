@@ -70,6 +70,15 @@ def test_card_shows_and_renders(screen):
     assert face.card_lines == ["line1", "line2"]
 
 
+def test_long_card_scrolls(screen):
+    face = MochiFace()
+    face.show_card("\n".join(f"line {i}" for i in range(60)))
+    for _ in range(300):
+        face.update(1 / 60)
+    face.draw(screen)
+    assert face.card_scroll > 0
+
+
 def test_emotion_colors_cover_all_emotions():
     from mochi.constants import EMOTION_COLORS
 

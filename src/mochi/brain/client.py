@@ -13,6 +13,7 @@ from mochi.constants import (
     EMOTIONS,
     KEEP_ALIVE,
     MAX_HISTORY,
+    SPEECH_JUNK_RE,
     SYSTEM_PROMPT,
 )
 
@@ -31,8 +32,10 @@ def split_sentences(text: str) -> tuple[list[str], str]:
 
 
 def clean_speech(text: str) -> str:
-    kept = "".join(ch for ch in text if ord(ch) < 0x2500)
-    return kept.strip() if any(ch.isalpha() for ch in kept) else ""
+    kept = SPEECH_JUNK_RE.sub("", text)
+    kept = "".join(ch for ch in kept if ord(ch) < 0x2500)
+    kept = " ".join(kept.split())
+    return kept if any(ch.isalpha() for ch in kept) else ""
 
 
 def clean_block(block: str) -> str:
@@ -125,15 +128,17 @@ class BrainClient:
         self.trim()
 
     def consume_tag(self, buffer: str) -> tuple[str, bool]:
+        closers = {"[": "]", "(": ")", "*": "*"}
         lead = buffer.lstrip()
         if not lead:
             return buffer, False
-        if not lead.startswith("["):
+        closer = closers.get(lead[0])
+        if closer is None:
             return buffer, True
-        end = lead.find("]")
+        end = lead.find(closer, 1)
         if end == -1:
             return (buffer, False) if len(lead) < 24 else (buffer, True)
-        tag = lead[1:end].lower()
+        tag = lead[1:end].strip().lower()
         if tag in EMOTIONS:
             self.last_emotion = tag
         return lead[end + 1 :].lstrip(), True

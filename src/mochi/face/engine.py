@@ -18,7 +18,11 @@ from mochi.constants import (
     BOUNCE_FREQ,
     BREATH_AMP,
     BREATH_PERIOD,
+    CARD_LINE_H,
     CARD_MAX_LINES,
+    CARD_PANEL_TOP,
+    CARD_SCROLL_DELAY,
+    CARD_SCROLL_SPEED,
     CARD_SECONDS,
     CARD_WRAP,
     COLOR_EASE_RATE,
@@ -76,6 +80,8 @@ class MochiFace:
         self.parade_t = 0.0
         self.card_lines: list[str] = []
         self.card_until = 0.0
+        self.card_started = 0.0
+        self.card_scroll = 0.0
         self.fonts: dict[int, pg.font.Font] = {}
         self.t = 0.0
 
@@ -100,7 +106,9 @@ class MochiFace:
                 lines.append(raw[:CARD_WRAP])
                 raw = raw[CARD_WRAP:]
         self.card_lines = lines[:CARD_MAX_LINES]
-        self.card_until = self.t + CARD_SECONDS
+        self.card_scroll = 0.0
+        self.card_started = self.t
+        self.card_until = self.t + CARD_SECONDS + 0.6 * len(self.card_lines)
 
     def font(self, size: int) -> pg.font.Font:
         if size not in self.fonts:
@@ -109,6 +117,14 @@ class MochiFace:
 
     def update(self, dt: float, mouse_gaze: pg.Vector2 | None = None) -> None:
         self.t += dt
+        if self.card_lines:
+            if self.t >= self.card_until:
+                self.card_lines = []
+                self.card_scroll = 0.0
+            elif self.t > self.card_started + CARD_SCROLL_DELAY:
+                panel_h = SIZE - int(SIZE * CARD_PANEL_TOP) - 40
+                max_scroll = max(0.0, len(self.card_lines) * CARD_LINE_H - panel_h)
+                self.card_scroll = min(self.card_scroll + CARD_SCROLL_SPEED * dt, max_scroll)
         if self.parade:
             self.parade_t -= dt
             if self.parade_t <= 0:
@@ -156,14 +172,15 @@ class MochiFace:
                 self.next_blink = DOUBLE_BLINK_DELAY if double else random.uniform(*BLINK_INTERVAL)
 
     def draw(self, screen: pg.Surface) -> None:
-        if self.card_lines and self.t < self.card_until:
-            self.draw_terminal(screen)
-            return
+        card = bool(self.card_lines) and self.t < self.card_until
         s = self.state
+        scale = 0.5 if card else 1.0
         cx, cy = SIZE / 2, SIZE / 2
+        eye_cy = SIZE * 0.18 if card else cy - EYE_RAISE
         color = tuple(int(self.rgb[i] * s["dim"]) for i in range(3))
         screen.fill(BACKGROUND)
-        pg.draw.circle(screen, BEZEL, (cx, cy), SIZE // 2 - 4, 3)
+        if not card:
+            pg.draw.circle(screen, BEZEL, (cx, cy), SIZE // 2 - 4, 3)
 
         breathe = 1.0 + BREATH_AMP * math.sin(self.t * math.tau / BREATH_PERIOD)
         bounce_y = -abs(math.sin(self.t * BOUNCE_FREQ)) * BOUNCE_AMP * s["bounce"]
@@ -177,11 +194,11 @@ class MochiFace:
         gy = self.gaze.y * GAZE_RANGE[1] + bounce_y
 
         for side in (-1, 1):
-            w = s["w"] * stretch_x * breathe
-            h = s["h"] * stretch_y * breathe * max(0.05, self.blink)
+            w = s["w"] * stretch_x * breathe * scale
+            h = s["h"] * stretch_y * breathe * max(0.05, self.blink) * scale
             if side == 1:
                 h *= 1.0 - SQUINT_FACTOR * s["squint"]
-            r = min(s["r"], w / 2, h / 2)
+            r = min(s["r"] * scale, w / 2, h / 2)
             surf = pg.Surface((int(w) + 4, int(h) + 4), pg.SRCALPHA)
             pg.draw.rect(surf, color, (2, 2, int(w), int(h)), border_radius=int(r))
             if s["crescent"] > 0.02:
@@ -190,8 +207,12 @@ class MochiFace:
                 pg.draw.rect(surf, BACKGROUND, cover, border_radius=int(r))
             if abs(s["tilt"]) > 0.5:
                 surf = pg.transform.rotate(surf, -side * s["tilt"])
-            rect = surf.get_rect(center=(cx + side * EYE_GAP + gx, cy - EYE_RAISE + gy))
-            screen.blit(surf, rect)
+            center = (cx + side * EYE_GAP * scale + gx * scale, eye_cy + gy * scale)
+            screen.blit(surf, surf.get_rect(center=center))
+
+        if card:
+            self.draw_code_panel(screen, color)
+            return
 
         if self.emotion in ("happy", "excited"):
             blush = pg.Surface((60, 26), pg.SRCALPHA)
@@ -212,17 +233,17 @@ class MochiFace:
             mouth_val = TALK_BASE + TALK_AMP * math.sin(self.t * TALK_FREQ)
         self.draw_mouth(screen, cx, cy + MOUTH_OFFSET_Y + gy * 0.4, mouth_val, color)
 
-    def draw_terminal(self, screen: pg.Surface) -> None:
-        screen.fill(TERMINAL_BG)
-        header = self.font(14).render("mochi:~/screen", True, (120, 140, 150))
-        screen.blit(header, (24, 16))
-        pg.draw.line(screen, (40, 48, 56), (0, 42), (SIZE, 42), 1)
-        f = self.font(18)
+    def draw_code_panel(self, screen: pg.Surface, color: tuple) -> None:
+        top = int(SIZE * CARD_PANEL_TOP)
+        rect = pg.Rect(20, top, SIZE - 40, SIZE - top - 20)
+        pg.draw.rect(screen, TERMINAL_BG, rect, border_radius=12)
+        pg.draw.rect(screen, color, rect, 2, border_radius=12)
+        screen.set_clip(rect.inflate(-10, -18))
+        f = self.font(16)
+        y0 = rect.y + 12 - int(self.card_scroll)
         for i, line in enumerate(self.card_lines):
-            screen.blit(f.render(line, True, TERMINAL_FG), (24, 58 + 24 * i))
-        if int(self.t * 2) % 2 == 0:
-            y = 58 + 24 * len(self.card_lines)
-            pg.draw.rect(screen, TERMINAL_FG, (24, y + 4, 10, 18))
+            screen.blit(f.render(line, True, TERMINAL_FG), (rect.x + 16, y0 + i * CARD_LINE_H))
+        screen.set_clip(None)
 
     @staticmethod
     def draw_mouth(screen: pg.Surface, cx: float, cy: float, mouth: float, color: tuple) -> None:

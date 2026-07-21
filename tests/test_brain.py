@@ -29,6 +29,19 @@ def test_clean_speech_drops_non_latin():
     assert brain_client.clean_speech("Bonjour!") == "Bonjour!"
 
 
+def test_clean_speech_strips_stray_emotion_tags():
+    assert brain_client.clean_speech("Sure [neutral] thing") == "Sure thing"
+    assert brain_client.clean_speech("*thinking* Let me see") == "Let me see"
+
+
+def test_paren_style_tag_consumed(monkeypatch):
+    resp = stream_lines("(excited) Hi there.")
+    monkeypatch.setattr(brain_client, "urlopen", lambda req, timeout: resp)
+    bc = BrainClient(host="test", port=1)
+    assert list(bc.chat_stream("hi")) == ["Hi there."]
+    assert bc.last_emotion == "excited"
+
+
 def test_split_sentences():
     done, rest = split_sentences("One. Two! Thr")
     assert done == ["One.", "Two!"]
