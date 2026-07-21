@@ -54,6 +54,14 @@ def test_stream_yields_sentences_and_parses_tag(monkeypatch):
     assert bc.history[-1]["content"] == "[excited] Hello there. How are you?"
 
 
+def test_stream_routes_code_to_screen_not_speech(monkeypatch):
+    resp = stream_lines("[happy] On my screen. ", "```python\nprint(1)\n``` Done.")
+    monkeypatch.setattr(brain_client, "urlopen", lambda req, timeout: resp)
+    bc = BrainClient(host="test", port=1)
+    assert list(bc.chat_stream("code")) == ["On my screen.", "Done."]
+    assert bc.last_blocks == ["print(1)"]
+
+
 def test_stream_without_tag_defaults_happy(monkeypatch):
     resp = stream_lines("no tag here")
     monkeypatch.setattr(brain_client, "urlopen", lambda req, timeout: resp)

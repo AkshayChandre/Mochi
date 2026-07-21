@@ -53,6 +53,29 @@ def test_sleeping_suppresses_blink():
     _settle(face, 30)
     assert face.blink_phase == "idle"
 
+def test_parade_cycles_all_emotions_then_neutral(screen):
+    face = MochiFace()
+    face.play_parade()
+    for _ in range(1200):
+        face.update(1 / 60)
+    assert face.parade == []
+    assert face.emotion == "neutral"
+
+
+def test_card_shows_and_renders(screen):
+    face = MochiFace()
+    face.show_card("line1\nline2")
+    face.update(1 / 60)
+    face.draw(screen)
+    assert face.card_lines == ["line1", "line2"]
+
+
+def test_emotion_colors_cover_all_emotions():
+    from mochi.constants import EMOTION_COLORS
+
+    assert set(EMOTION_COLORS) == set(EMOTIONS)
+
+
 def test_speaking_mode_renders(screen):
     face = MochiFace()
     face.set_speaking(True)

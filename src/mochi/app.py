@@ -7,12 +7,19 @@ import pygame as pg
 from mochi.brain.client import BrainClient, BrainOfflineError
 from mochi.constants import FPS, SIZE, STATE_EMOTION
 from mochi.face.engine import MochiFace
-from mochi.voice.pipeline import State, VoicePipeline
+from mochi.voice.pipeline import State, VoicePipeline, find_wake
 
 
-class InstantWake:
-    def wait(self) -> None:
-        pass
+class TranscriptWake:
+    def __init__(self, stt) -> None:
+        self.stt = stt
+
+    def wait(self) -> str:
+        while True:
+            heard = find_wake(self.stt.listen())
+            if heard is not None:
+                return heard
+
 
 def make_apply(face: MochiFace, brain: BrainClient, sounds=None):
     def apply(state: State) -> None:
@@ -23,6 +30,18 @@ def make_apply(face: MochiFace, brain: BrainClient, sounds=None):
         face.set_emotion(emotion)
 
     return apply
+
+
+def make_intercept(face: MochiFace):
+    def intercept(text: str) -> str | None:
+        low = text.lower()
+        if "show" in low and ("expression" in low or "emotion" in low):
+            face.play_parade()
+            return "Watch my face!"
+        return None
+
+    return intercept
+
 
 def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
     try:
@@ -38,10 +57,28 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
         print("enable it with: pip install -e .[audio]  (see README) — using console mode")
         from mochi.voice.console import ConsoleIn, ConsoleOut, EnterWake
 
-        return VoicePipeline(EnterWake(), ConsoleIn(), brain, ConsoleOut(), make_apply(face, brain))
+        return VoicePipeline(
+            EnterWake(),
+            ConsoleIn(),
+            brain,
+            ConsoleOut(),
+            make_apply(face, brain),
+            make_intercept(face),
+            face.show_card,
+        )
 
     sounds.play(BOOT_SOUND)
-    return VoicePipeline(InstantWake(), stt, brain, tts, make_apply(face, brain, sounds))
+    print("say 'mochi' to wake me")
+    return VoicePipeline(
+        TranscriptWake(stt),
+        stt,
+        brain,
+        tts,
+        make_apply(face, brain, sounds),
+        make_intercept(face),
+        face.show_card,
+    )
+
 
 def start_voice(face: MochiFace) -> None:
     brain = BrainClient()
@@ -54,6 +91,7 @@ def start_voice(face: MochiFace) -> None:
             face.set_emotion("sad")
 
     threading.Thread(target=loop, daemon=True).start()
+
 
 def main() -> None:
     pg.init()
@@ -72,6 +110,7 @@ def main() -> None:
         face.draw(screen)
         pg.display.set_caption(f"Mochi — {face.emotion}")
         pg.display.flip()
+
 
 if __name__ == "__main__":
     main()

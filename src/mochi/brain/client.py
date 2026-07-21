@@ -8,6 +8,7 @@ from urllib.request import Request, urlopen
 from mochi.config import CONNECTIONS
 from mochi.constants import (
     BRAIN_TIMEOUT,
+    CODE_LANG_RE,
     EMOTION_TAG,
     EMOTIONS,
     KEEP_ALIVE,
@@ -29,6 +30,13 @@ def split_sentences(text: str) -> tuple[list[str], str]:
     return [s for s in out if s], text[start:]
 
 
+def clean_block(block: str) -> str:
+    lines = block.strip("\n").splitlines()
+    if lines and CODE_LANG_RE.fullmatch(lines[0].strip()):
+        lines = lines[1:]
+    return "\n".join(lines).strip()
+
+
 class BrainClient:
     def __init__(
         self, host: str | None = None, port: int | None = None, model: str | None = None
@@ -39,6 +47,7 @@ class BrainClient:
         self.model = model or CONNECTIONS.llm_model
         self.history: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
         self.last_emotion = "happy"
+        self.last_blocks: list[str] = []
 
     def request(self, stream: bool) -> Request:
         payload = {
@@ -64,7 +73,9 @@ class BrainClient:
     def chat_stream(self, text: str) -> Iterator[str]:
         self.history.append({"role": "user", "content": text})
         self.last_emotion = "happy"
-        raw, buffer, tag_done = "", "", False
+        self.last_blocks = []
+        raw, pending, speak_buf, fence_buf = "", "", "", ""
+        tag_done = in_fence = False
         try:
             with urlopen(self.request(True), timeout=BRAIN_TIMEOUT) as resp:
                 for line in resp:
@@ -73,18 +84,35 @@ class BrainClient:
                     data = json.loads(line)
                     piece = data.get("message", {}).get("content", "")
                     raw += piece
-                    buffer += piece
+                    pending += piece
                     if not tag_done:
-                        buffer, tag_done = self.consume_tag(buffer)
-                    if tag_done:
-                        sentences, buffer = split_sentences(buffer)
+                        pending, tag_done = self.consume_tag(pending)
+                        if not tag_done:
+                            continue
+                    while (marker := pending.find("```")) != -1:
+                        if in_fence:
+                            fence_buf += pending[:marker]
+                            self.last_blocks.append(clean_block(fence_buf))
+                            fence_buf = ""
+                        else:
+                            speak_buf += pending[:marker]
+                        pending = pending[marker + 3 :]
+                        in_fence = not in_fence
+                    if in_fence:
+                        fence_buf += pending
+                    else:
+                        speak_buf += pending
+                        sentences, speak_buf = split_sentences(speak_buf)
                         yield from sentences
+                    pending = ""
                     if data.get("done"):
                         break
         except (URLError, OSError) as err:
             self.history.pop()
             raise BrainOfflineError(f"brain unreachable at {self.url}") from err
-        if tail := buffer.strip():
+        if in_fence and fence_buf.strip():
+            self.last_blocks.append(clean_block(fence_buf))
+        if tail := speak_buf.strip():
             yield tail
         self.history.append({"role": "assistant", "content": raw})
         self.trim()

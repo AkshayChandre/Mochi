@@ -72,14 +72,24 @@ BRAIN_TIMEOUT = 120
 MAX_HISTORY = 40
 KEEP_ALIVE = "2h"
 SYSTEM_PROMPT = (
-    f"You are Mochi, a small desk companion robot owned by {OWNER_NAME}. "
+    f"You are Mochi, a small physical desk robot built by {OWNER_NAME}. "
+    "You are not a text chatbot: you hear through a microphone, speak out "
+    "loud, and have a screen face that shows emotions and displays content. "
     "You are warm, curious, and playful, like a cheerful kid robot. "
-    "Keep replies short and conversational, one to three sentences. "
+    "Keep spoken replies short, one to three sentences. "
     "Start every reply with exactly one emotion tag from: "
     "[happy] [excited] [sad] [surprised] [thinking] [neutral]. "
-    "Example: [happy] Hi Akshay! Nothing comes before the tag."
+    "Example: [happy] Hi Akshay! Nothing comes before the tag. "
+    "When asked for code or long technical content, say you are putting it "
+    "on your screen and include it in a ``` fenced block — fenced content is "
+    "displayed on your screen, never spoken. "
+    f"If asked about {OWNER_NAME}, stay playful and vague: he is your "
+    "creator and a great developer, and joke that if you reveal any more "
+    "than that, he will kick your shiny metal butt."
 )
 EMOTION_TAG = re.compile(r"^\s*\[(\w+)\]\s*")
+CODE_LANG_RE = re.compile(r"[A-Za-z0-9_+\-#]{1,15}")
+WAKE_ALIASES = ("mochi", "mochie", "mochee", "moki", "mocha")
 
 SPEECH_SECONDS_PER_CHAR = 0.03
 
@@ -112,3 +122,19 @@ THINK_BLIP_INTERVAL = 0.8
 TALK_FREQ = 13.0
 TALK_BASE = 0.55
 TALK_AMP = 0.45
+
+EMOTION_COLORS = {
+    "neutral": (64, 224, 255),
+    "happy": (80, 255, 190),
+    "excited": (255, 170, 70),
+    "sad": (95, 130, 255),
+    "thinking": (185, 130, 255),
+    "surprised": (255, 225, 90),
+    "sleeping": (70, 95, 130),
+}
+COLOR_EASE_RATE = 6.0
+PARTICLE_COUNT = 14
+BLUSH_COLOR = (255, 120, 150)
+PARADE_SECONDS = 1.4
+CARD_SECONDS = 25.0
+CARD_MAX_LINES = 18

@@ -13,16 +13,20 @@ from mochi.constants import (
     BEZEL,
     BLINK_INTERVAL,
     BLINK_SPEED,
+    BLUSH_COLOR,
     BOUNCE_AMP,
     BOUNCE_FREQ,
     BREATH_AMP,
     BREATH_PERIOD,
+    CARD_MAX_LINES,
+    CARD_SECONDS,
+    COLOR_EASE_RATE,
     DOUBLE_BLINK_CHANCE,
     DOUBLE_BLINK_DELAY,
     EASE_RATE,
+    EMOTION_COLORS,
     EMOTION_KEYS,
     EMOTIONS,
-    EYE_COLOR,
     EYE_GAP,
     EYE_RAISE,
     FPS,
@@ -34,6 +38,8 @@ from mochi.constants import (
     MOUTH_THICKNESS,
     MOUTH_VISIBLE_MIN,
     NUMERIC_FIELDS,
+    PARADE_SECONDS,
+    PARTICLE_COUNT,
     SIZE,
     SQUINT_FACTOR,
     STRETCH_CROSS,
@@ -50,10 +56,12 @@ from mochi.constants import (
 def ease(current: float, target: float, rate: float, dt: float) -> float:
     return current + (target - current) * (1.0 - math.exp(-rate * dt))
 
+
 class MochiFace:
     def __init__(self) -> None:
         self.emotion = "neutral"
         self.state = {k: getattr(EMOTIONS["neutral"], k) for k in NUMERIC_FIELDS}
+        self.rgb = list(EMOTION_COLORS["neutral"])
         self.gaze = pg.Vector2()
         self.gaze_target = pg.Vector2()
         self.gaze_vel = pg.Vector2()
@@ -62,6 +70,20 @@ class MochiFace:
         self.blink_phase = "idle"
         self.next_blink = random.uniform(*BLINK_INTERVAL)
         self.speaking = False
+        self.parade: list[str] = []
+        self.parade_t = 0.0
+        self.card_lines: list[str] = []
+        self.card_until = 0.0
+        self.fonts: dict[int, pg.font.Font] = {}
+        self.particles = [
+            [
+                random.uniform(0, SIZE),
+                random.uniform(0, SIZE),
+                random.uniform(8, 22),
+                random.uniform(0, math.tau),
+            ]
+            for _ in range(PARTICLE_COUNT)
+        ]
         self.t = 0.0
 
     def set_emotion(self, name: str) -> None:
@@ -72,11 +94,37 @@ class MochiFace:
     def set_speaking(self, speaking: bool) -> None:
         self.speaking = speaking
 
+    def play_parade(self) -> None:
+        self.parade = [*EMOTION_KEYS, "neutral"]
+        self.parade_t = 0.0
+
+    def show_card(self, text: str) -> None:
+        self.card_lines = [ln[:64] for ln in text.splitlines()][:CARD_MAX_LINES]
+        self.card_until = self.t + CARD_SECONDS
+
+    def font(self, size: int) -> pg.font.Font:
+        if size not in self.fonts:
+            self.fonts[size] = pg.font.SysFont("consolas,couriernew,monospace", size)
+        return self.fonts[size]
+
     def update(self, dt: float, mouse_gaze: pg.Vector2 | None = None) -> None:
         self.t += dt
+        if self.parade:
+            self.parade_t -= dt
+            if self.parade_t <= 0:
+                self.set_emotion(self.parade.pop(0))
+                self.parade_t = PARADE_SECONDS
         spec = EMOTIONS[self.emotion]
         for k in NUMERIC_FIELDS:
             self.state[k] = ease(self.state[k], getattr(spec, k), EASE_RATE, dt)
+        target = EMOTION_COLORS[self.emotion]
+        for i in range(3):
+            self.rgb[i] = ease(self.rgb[i], target[i], COLOR_EASE_RATE, dt)
+        for p in self.particles:
+            p[1] -= p[2] * dt
+            p[0] += math.sin(self.t * 0.8 + p[3]) * 14 * dt
+            if p[1] < -4:
+                p[0], p[1] = random.uniform(0, SIZE), SIZE + 4
         self.update_gaze(dt, spec, mouse_gaze)
         self.update_blink(dt, self.emotion == "sleeping")
 
@@ -115,12 +163,16 @@ class MochiFace:
     def draw(self, screen: pg.Surface) -> None:
         s = self.state
         cx, cy = SIZE / 2, SIZE / 2
+        color = tuple(int(self.rgb[i] * s["dim"]) for i in range(3))
         screen.fill(BACKGROUND)
         pg.draw.circle(screen, BEZEL, (cx, cy), SIZE // 2 - 4, 3)
 
+        dust = tuple(int(c * 0.35) for c in color)
+        for p in self.particles:
+            pg.draw.circle(screen, dust, (int(p[0]), int(p[1])), 2)
+
         breathe = 1.0 + BREATH_AMP * math.sin(self.t * math.tau / BREATH_PERIOD)
         bounce_y = -abs(math.sin(self.t * BOUNCE_FREQ)) * BOUNCE_AMP * s["bounce"]
-        color = tuple(int(c * s["dim"]) for c in EYE_COLOR)
 
         v = self.gaze_vel
         lo, hi = STRETCH_LIMITS
@@ -147,10 +199,39 @@ class MochiFace:
             rect = surf.get_rect(center=(cx + side * EYE_GAP + gx, cy - EYE_RAISE + gy))
             screen.blit(surf, rect)
 
+        if self.emotion in ("happy", "excited"):
+            blush = pg.Surface((60, 26), pg.SRCALPHA)
+            pg.draw.ellipse(blush, (*BLUSH_COLOR, int(110 * s["crescent"])), (0, 0, 60, 26))
+            for side in (-1, 1):
+                pos = (cx + side * (EYE_GAP + 45), cy + 40 + gy)
+                screen.blit(blush, blush.get_rect(center=pos))
+
+        if self.emotion == "sleeping":
+            f = self.font(24)
+            for i in (0, 1):
+                z = f.render("z", True, color)
+                bob = math.sin(self.t * 2 + i) * 6
+                screen.blit(z, (cx + 118 + i * 24, cy - 70 - i * 30 + bob))
+
         mouth_val = s["mouth"]
         if self.speaking:
             mouth_val = TALK_BASE + TALK_AMP * math.sin(self.t * TALK_FREQ)
         self.draw_mouth(screen, cx, cy + MOUTH_OFFSET_Y + gy * 0.4, mouth_val, color)
+
+        if self.card_lines and self.t < self.card_until:
+            self.draw_card(screen, color)
+
+    def draw_card(self, screen: pg.Surface, color: tuple) -> None:
+        pad = 36
+        h = 34 + 20 * len(self.card_lines)
+        rect = pg.Rect(pad, SIZE - h - pad, SIZE - 2 * pad, h)
+        panel = pg.Surface(rect.size, pg.SRCALPHA)
+        pg.draw.rect(panel, (16, 20, 28, 235), panel.get_rect(), border_radius=14)
+        pg.draw.rect(panel, (*color, 255), panel.get_rect(), 2, border_radius=14)
+        f = self.font(15)
+        for i, line in enumerate(self.card_lines):
+            panel.blit(f.render(line, True, (220, 230, 240)), (16, 12 + 20 * i))
+        screen.blit(panel, rect)
 
     @staticmethod
     def draw_mouth(screen: pg.Surface, cx: float, cy: float, mouth: float, color: tuple) -> None:
@@ -162,6 +243,7 @@ class MochiFace:
             for u in range(17)
         ]
         pg.draw.lines(screen, color, False, pts, MOUTH_THICKNESS)
+
 
 def main() -> None:
     pg.init()
@@ -187,6 +269,10 @@ def main() -> None:
                     mouse_follow = not mouse_follow
                 elif e.key == pg.K_a:
                     autopilot = not autopilot
+                elif e.key == pg.K_p:
+                    face.play_parade()
+                elif e.key == pg.K_c:
+                    face.show_card("def hello():\n    print('hi from Mochi')")
 
         if autopilot:
             auto_next -= dt
@@ -203,13 +289,14 @@ def main() -> None:
 
         face.update(dt, mouse)
         face.draw(screen)
-        pg.display.set_caption(f"Mochi v0.1 — {face.emotion}  [1-7 emotion | M mouse | A auto]")
+        pg.display.set_caption(f"Mochi — {face.emotion}  [1-7 | M mouse | A auto | P parade]")
         pg.display.flip()
 
         frame += 1
         if frame_limit and frame >= frame_limit:
             pg.quit()
             return
+
 
 if __name__ == "__main__":
     main()
