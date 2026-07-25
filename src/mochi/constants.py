@@ -70,15 +70,30 @@ AUTOPILOT_INTERVAL = 3.5
 OWNER_NAME = "Akshay"
 BRAIN_TIMEOUT = 120
 MAX_HISTORY = 40
+KEEP_ALIVE = "2h"
 SYSTEM_PROMPT = (
-    f"You are Mochi, a small desk companion robot owned by {OWNER_NAME}. "
+    f"You are Mochi, a small physical desk robot built by {OWNER_NAME}. "
+    "You are not a text chatbot: you hear through a microphone, speak out "
+    "loud, and have a screen face that shows emotions and displays content. "
     "You are warm, curious, and playful, like a cheerful kid robot. "
-    "Keep replies short and conversational, one to three sentences. "
+    "Keep spoken replies short, one to three sentences. "
+    "Always speak English only, never any other language. "
     "Start every reply with exactly one emotion tag from: "
     "[happy] [excited] [sad] [surprised] [thinking] [neutral]. "
-    "Example: [happy] Hi Akshay! Nothing comes before the tag."
+    "Example: [happy] Hi Akshay! Nothing comes before the tag. "
+    "The tag is silent metadata for your face: never say the tag aloud and "
+    "never describe or announce your emotional state in words. "
+    "When asked for code or long technical content, say you are putting it "
+    "on your screen and include it in a ``` fenced block — fenced content is "
+    "displayed on your screen, never spoken. "
+    f"If asked about {OWNER_NAME}, stay playful and vague: he is your "
+    "creator and a great developer, and joke that if you reveal any more "
+    "than that, he will kick your shiny metal butt."
 )
 EMOTION_TAG = re.compile(r"^\s*\[(\w+)\]\s*")
+CODE_LANG_RE = re.compile(r"[A-Za-z0-9_+\-#]{1,15}")
+SPEECH_JUNK_RE = re.compile(r"\[[^\]\n]{0,30}\]|\*[^*\n]{0,30}\*")
+WAKE_ALIASES = ("mochi", "mochie", "mochee", "moki", "mocha")
 
 SPEECH_SECONDS_PER_CHAR = 0.03
 
@@ -92,7 +107,7 @@ STATE_EMOTION = {
 SAMPLE_RATE = 16000
 FRAME_SECONDS = 0.03
 SILENCE_RMS = 0.010
-SILENCE_END_SECONDS = 1.2
+SILENCE_END_SECONDS = 0.9
 CONVERSATION_WAIT_SECONDS = 8.0
 MAX_UTTERANCE_SECONDS = 20.0
 MIN_SPEECH_SECONDS = 0.3
@@ -111,3 +126,25 @@ THINK_BLIP_INTERVAL = 0.8
 TALK_FREQ = 13.0
 TALK_BASE = 0.55
 TALK_AMP = 0.45
+
+EMOTION_COLORS = {
+    "neutral": (64, 224, 255),
+    "happy": (80, 255, 190),
+    "excited": (255, 170, 70),
+    "sad": (95, 130, 255),
+    "thinking": (185, 130, 255),
+    "surprised": (255, 225, 90),
+    "sleeping": (70, 95, 130),
+}
+COLOR_EASE_RATE = 6.0
+BLUSH_COLOR = (255, 120, 150)
+PARADE_SECONDS = 1.4
+CARD_SECONDS = 20.0
+CARD_MAX_LINES = 200
+CARD_WRAP = 52
+CARD_LINE_H = 22
+CARD_SCROLL_SPEED = 22.0
+CARD_SCROLL_DELAY = 1.5
+CARD_PANEL_TOP = 0.36
+TERMINAL_BG = (8, 10, 12)
+TERMINAL_FG = (170, 255, 190)

@@ -6,6 +6,13 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Streaming voice: LLM replies stream sentence-by-sentence into TTS, so
+  Mochi starts speaking after the first sentence instead of the full
+  reply. Ollama `keep_alive` pinned to 2h (no cold reloads); TTS
+  synthesizes the next sentence while the previous one plays;
+  end-of-speech silence window tightened 1.2s -> 0.9s.
+
 ### Added
 - Printable shell v1 (`hardware/cad`): parametric OpenSCAD, NOVA-style —
   head, body, neck, base, ears, arms, tread pods, glowing heart inlay,

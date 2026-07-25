@@ -12,6 +12,7 @@ from mochi.constants import (
     SILENCE_RMS,
 )
 
+
 def rms(frame: np.ndarray) -> float:
     return float(np.sqrt(np.mean(np.square(frame))))
 

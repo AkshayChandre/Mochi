@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
+
 import numpy as np
+
 from mochi.constants import PITCH_FACTOR, TREMOLO_DEPTH, TREMOLO_HZ, VOICE_NAME, VOICES_DIR
+
 
 class KidRobotVoice:
     def __init__(self) -> None:
@@ -29,5 +32,8 @@ class KidRobotVoice:
         rate = int(self.voice.config.sample_rate * PITCH_FACTOR)
         t = np.arange(len(audio)) / rate
         audio *= 1.0 - TREMOLO_DEPTH * (0.5 + 0.5 * np.sin(math.tau * TREMOLO_HZ * t))
+        self.sd.wait()
         self.sd.play(audio, rate)
+
+    def flush(self) -> None:
         self.sd.wait()

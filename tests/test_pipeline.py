@@ -1,9 +1,11 @@
 from mochi.constants import EMOTIONS, STATE_EMOTION
-from mochi.voice.pipeline import State, VoicePipeline
+from mochi.voice.pipeline import State, VoicePipeline, find_wake
+
 
 class Wake:
     def wait(self):
-        pass
+        return ""
+
 
 class Stt:
     def __init__(self, *texts):
@@ -12,20 +14,30 @@ class Stt:
     def listen(self):
         return self.texts.pop(0) if self.texts else ""
 
+
 class Brain:
     def __init__(self):
         self.asked = []
+        self.last_emotion = "happy"
+        self.last_blocks = []
 
-    def chat(self, text):
+    def chat_stream(self, text):
         self.asked.append(text)
-        return f"echo: {text}"
+        yield f"echo: {text}."
+        yield "More."
+
 
 class Tts:
     def __init__(self):
         self.spoken = []
+        self.flushes = 0
 
     def say(self, text):
         self.spoken.append(text)
+
+    def flush(self):
+        self.flushes += 1
+
 
 def build(*texts):
     states = []
@@ -33,11 +45,13 @@ def build(*texts):
     pipe = VoicePipeline(Wake(), Stt(*texts), brain, tts, states.append)
     return pipe, brain, tts, states
 
-def test_single_turn_conversation():
+
+def test_single_turn_speaks_per_sentence():
     pipe, brain, tts, states = build("hello")
-    assert pipe.converse() == "echo: hello"
+    assert pipe.converse() == "echo: hello. More."
     assert brain.asked == ["hello"]
-    assert tts.spoken == ["echo: hello"]
+    assert tts.spoken == ["echo: hello.", "More."]
+    assert tts.flushes == 1
     assert states == [
         State.LISTENING,
         State.THINKING,
@@ -46,13 +60,15 @@ def test_single_turn_conversation():
         State.IDLE,
     ]
 
+
 def test_multi_turn_conversation_without_rewake():
     pipe, brain, tts, states = build("hi", "how are you")
-    assert pipe.converse() == "echo: how are you"
+    assert brain.asked == [] and pipe.converse() != ""
     assert brain.asked == ["hi", "how are you"]
-    assert tts.spoken == ["echo: hi", "echo: how are you"]
+    assert len(tts.spoken) == 4
     assert states.count(State.LISTENING) == 3
     assert states[-1] == State.IDLE
+
 
 def test_silence_ends_conversation():
     pipe, brain, tts, states = build()
@@ -61,12 +77,51 @@ def test_silence_ends_conversation():
     assert tts.spoken == []
     assert states == [State.LISTENING, State.IDLE]
 
+
 def test_state_emotion_mapping():
     pipe, *_ = build()
     assert pipe.emotion() == "neutral"
     pipe.set_state(State.THINKING)
     assert pipe.emotion() == "thinking"
 
+
 def test_every_state_maps_to_a_real_emotion():
     assert set(STATE_EMOTION) == {s.value for s in State}
     assert set(STATE_EMOTION.values()) <= set(EMOTIONS)
+
+
+def test_find_wake_word():
+    assert find_wake("hey Mochi, what's up") == "what's up"
+    assert find_wake("MOCHI") == ""
+    assert find_wake("nothing to see") is None
+
+
+def test_wake_leftover_becomes_first_utterance():
+    class LeftoverWake:
+        def wait(self):
+            return "tell me a joke"
+
+    states = []
+    brain, tts = Brain(), Tts()
+    pipe = VoicePipeline(LeftoverWake(), Stt(), brain, tts, states.append)
+    pipe.converse()
+    assert brain.asked == ["tell me a joke"]
+
+
+def test_intercept_bypasses_brain():
+    brain, tts = Brain(), Tts()
+    pipe = VoicePipeline(
+        Wake(), Stt("show your expressions"), brain, tts, intercept=lambda t: "Watch!"
+    )
+    assert pipe.converse() == "Watch!"
+    assert brain.asked == []
+    assert tts.spoken == ["Watch!"]
+
+
+def test_display_blocks_forwarded():
+    shown = []
+    brain, tts = Brain(), Tts()
+    brain.last_blocks = ["print('hi')"]
+    pipe = VoicePipeline(Wake(), Stt("code please"), brain, tts, on_display=shown.append)
+    pipe.converse()
+    assert shown == ["print('hi')"]
