@@ -4,23 +4,12 @@ from collections.abc import Callable, Iterator
 from enum import Enum
 from typing import Protocol
 
-from mochi.constants import STATE_EMOTION, WAKE_ALIASES
-
 
 class State(str, Enum):
     IDLE = "idle"
     LISTENING = "listening"
     THINKING = "thinking"
     SPEAKING = "speaking"
-
-
-def find_wake(text: str) -> str | None:
-    low = text.lower()
-    for alias in WAKE_ALIASES:
-        i = low.find(alias)
-        if i != -1:
-            return text[i + len(alias) :].lstrip(" ,.!?")
-    return None
 
 
 class WakeSource(Protocol):
@@ -66,9 +55,6 @@ class VoicePipeline:
         self.state = state
         if self.on_state:
             self.on_state(state)
-
-    def emotion(self) -> str:
-        return STATE_EMOTION[self.state.value]
 
     def converse(self) -> str:
         pending = self.wake.wait().strip()

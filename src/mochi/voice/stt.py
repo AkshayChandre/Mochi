@@ -15,5 +15,5 @@ class WhisperTranscriber:
         audio = self.recorder.record_utterance()
         if audio is None:
             return ""
-        segments, info = self.model.transcribe(audio, beam_size=1, language="en")
+        segments, _ = self.model.transcribe(audio, beam_size=1, language="en")
         return " ".join(seg.text.strip() for seg in segments).strip()

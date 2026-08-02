@@ -64,3 +64,4 @@ all intelligence lives on the robot's brain server.
   framework.
 - No accounts, no cloud, no analytics. Everything talks only to the robot on
   the LAN.
+  

@@ -8,7 +8,6 @@ from dataclasses import dataclass, fields
 SIZE = 720
 FPS = 60
 BACKGROUND = (10, 12, 16)
-EYE_COLOR = (64, 224, 255)
 BEZEL = (30, 34, 42)
 EASE_RATE = 9.0
 GAZE_RANGE = (46, 34)
@@ -90,10 +89,8 @@ SYSTEM_PROMPT = (
     "creator and a great developer, and joke that if you reveal any more "
     "than that, he will kick your shiny metal butt."
 )
-EMOTION_TAG = re.compile(r"^\s*\[(\w+)\]\s*")
 CODE_LANG_RE = re.compile(r"[A-Za-z0-9_+\-#]{1,15}")
 SPEECH_JUNK_RE = re.compile(r"\[[^\]\n]{0,30}\]|\*[^*\n]{0,30}\*")
-WAKE_ALIASES = ("mochi", "mochie", "mochee", "moki", "mocha")
 
 SPEECH_SECONDS_PER_CHAR = 0.03
 

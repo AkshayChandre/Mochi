@@ -112,7 +112,37 @@ module neck_post() {
 
 /* ------------------------------------------------ body ---- */
 
+function body_boss_xz() =
+    let (bx = body_w / 2 - wall - boss_d / 2 - 1, bz = body_d / 2 - wall - boss_d / 2 - 1)
+    [[bx, body_d / 2, 1, 0], [-bx, body_d / 2, -1, 0],
+     [0, body_d / 2 - bz, 0, -1], [0, body_d / 2 + bz, 0, 1]];
+
 module body_shell() {
+    difference() {
+        intersection() {
+            union() {
+                body_core();
+                for (p = body_boss_xz()) {
+                    translate([p[0], -body_hh / 2, p[1]])
+                        rotate([-90, 0, 0]) cylinder(d = boss_d, h = 14);
+                    // rib reaching into the wall; clipped to the outer surface
+                    translate([p[0] + p[2] * 5, -body_hh / 2 + 7, p[1] + p[3] * 5])
+                        cube([p[2] ? 14 : boss_d, 14, p[3] ? 14 : boss_d], center = true);
+                }
+                // bottom-rim rails tying all four bosses together, end to end
+                translate([-boss_d / 2, -body_hh / 2, 0]) cube([boss_d, 4, body_d]);
+                translate([-body_w / 2, -body_hh / 2, body_d / 2 - boss_d / 2])
+                    cube([body_w, 4, boss_d]);
+            }
+            rbox3(body_w, body_hh, body_d, body_r);
+        }
+        for (p = body_boss_xz())
+            translate([p[0], -body_hh / 2 - 1, p[1]])
+                rotate([-90, 0, 0]) cylinder(d = m3_pilot, h = 12);
+    }
+}
+
+module body_core() {
     difference() {
         rbox3(body_w, body_hh, body_d, body_r);
         // hollow, open bottom (y < 0 side)
@@ -158,13 +188,6 @@ module body_shell() {
             translate([sx * (body_w / 2 - wall - 1), -body_hh * 0.15, body_d * 0.5 + dz])
                 rotate([0, sx * 90, 0]) cylinder(d = 4.3, h = wall + 3);
     }
-    // base-plate bosses at bottom rim, fused to side walls
-    for (sx = [-1, 1])
-        translate([sx * (body_w / 2 - wall - boss_d / 2 - 1), -body_hh / 2 + 10, body_d / 2])
-            rotate([90, 0, 0]) boss(10, m3_pilot);
-    for (sz = [-1, 1])
-        translate([0, -body_hh / 2 + 10, body_d / 2 + sz * (body_d / 2 - wall - boss_d / 2 - 1)])
-            rotate([90, 0, 0]) boss(10, m3_pilot);
 }
 
 module base_plate() {
