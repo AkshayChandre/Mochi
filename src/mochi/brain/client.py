@@ -9,7 +9,6 @@ from mochi.config import CONNECTIONS
 from mochi.constants import (
     BRAIN_TIMEOUT,
     CODE_LANG_RE,
-    EMOTION_TAG,
     EMOTIONS,
     KEEP_ALIVE,
     MAX_HISTORY,
@@ -57,35 +56,21 @@ class BrainClient:
         self.last_emotion = "happy"
         self.last_blocks: list[str] = []
 
-    def request(self, stream: bool) -> Request:
-        payload = {
-            "model": self.model,
-            "messages": self.history,
-            "stream": stream,
-            "keep_alive": KEEP_ALIVE,
-        }
-        return Request(self.url, json.dumps(payload).encode(), {"Content-Type": "application/json"})
-
-    def chat(self, text: str) -> str:
-        self.history.append({"role": "user", "content": text})
-        try:
-            with urlopen(self.request(False), timeout=BRAIN_TIMEOUT) as resp:
-                reply = json.load(resp)["message"]["content"]
-        except (URLError, OSError) as err:
-            self.history.pop()
-            raise BrainOfflineError(f"brain unreachable at {self.url}") from err
-        self.history.append({"role": "assistant", "content": reply})
-        self.trim()
-        return self.extract_emotion(reply)
-
     def chat_stream(self, text: str) -> Iterator[str]:
         self.history.append({"role": "user", "content": text})
         self.last_emotion = "happy"
         self.last_blocks = []
+        payload = {
+            "model": self.model,
+            "messages": self.history,
+            "stream": True,
+            "keep_alive": KEEP_ALIVE,
+        }
+        req = Request(self.url, json.dumps(payload).encode(), {"Content-Type": "application/json"})
         raw, pending, speak_buf, fence_buf = "", "", "", ""
         tag_done = in_fence = False
         try:
-            with urlopen(self.request(True), timeout=BRAIN_TIMEOUT) as resp:
+            with urlopen(req, timeout=BRAIN_TIMEOUT) as resp:
                 for line in resp:
                     if not line.strip():
                         continue
@@ -142,14 +127,6 @@ class BrainClient:
         if tag in EMOTIONS:
             self.last_emotion = tag
         return lead[end + 1 :].lstrip(), True
-
-    def extract_emotion(self, reply: str) -> str:
-        match = EMOTION_TAG.match(reply)
-        if match and match.group(1).lower() in EMOTIONS:
-            self.last_emotion = match.group(1).lower()
-            return reply[match.end() :].strip()
-        self.last_emotion = "happy"
-        return reply.strip()
 
     def trim(self) -> None:
         if len(self.history) > MAX_HISTORY:

@@ -44,26 +44,16 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
         from mochi.voice.tts import KidRobotVoice
 
         sounds = RobotSounds()
-        stt = WhisperTranscriber()
-        tts = KidRobotVoice()
+        wake, stt, tts = InstantWake(), WhisperTranscriber(), KidRobotVoice()
+        sounds.play(BOOT_SOUND)
     except Exception as err:
         print(f"audio unavailable: {err}")
         print("enable it with: pip install -e .[audio]  (see README) — using console mode")
         from mochi.voice.console import ConsoleIn, ConsoleOut, EnterWake
 
-        return VoicePipeline(
-            EnterWake(),
-            ConsoleIn(),
-            brain,
-            ConsoleOut(),
-            make_apply(face, brain),
-            make_intercept(face),
-            face.show_card,
-        )
-
-    sounds.play(BOOT_SOUND)
+        sounds, wake, stt, tts = None, EnterWake(), ConsoleIn(), ConsoleOut()
     return VoicePipeline(
-        InstantWake(),
+        wake,
         stt,
         brain,
         tts,

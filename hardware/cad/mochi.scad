@@ -129,6 +129,10 @@ module body_shell() {
                     translate([p[0] + p[2] * 5, -body_hh / 2 + 7, p[1] + p[3] * 5])
                         cube([p[2] ? 14 : boss_d, 14, p[3] ? 14 : boss_d], center = true);
                 }
+                // bottom-rim rails tying all four bosses together, end to end
+                translate([-boss_d / 2, -body_hh / 2, 0]) cube([boss_d, 4, body_d]);
+                translate([-body_w / 2, -body_hh / 2, body_d / 2 - boss_d / 2])
+                    cube([body_w, 4, boss_d]);
             }
             rbox3(body_w, body_hh, body_d, body_r);
         }
