@@ -7,6 +7,7 @@ from urllib.request import Request, urlopen
 
 from mochi.config import CONNECTIONS
 from mochi.constants import (
+    BRAIN_OPTIONS,
     BRAIN_TIMEOUT,
     CODE_LANG_RE,
     EMOTIONS,
@@ -65,6 +66,7 @@ class BrainClient:
             "messages": self.history,
             "stream": True,
             "keep_alive": KEEP_ALIVE,
+            "options": BRAIN_OPTIONS,
         }
         req = Request(self.url, json.dumps(payload).encode(), {"Content-Type": "application/json"})
         raw, pending, speak_buf, fence_buf = "", "", "", ""
