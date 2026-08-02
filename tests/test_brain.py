@@ -54,6 +54,7 @@ def test_stream_yields_sentences_parses_tag_and_payload(monkeypatch):
     assert bc.history[-1]["content"] == "[excited] Hello there. How are you?"
     assert captured["payload"]["model"] == "test-model"
     assert captured["payload"]["keep_alive"] == brain_client.KEEP_ALIVE
+    assert captured["payload"]["options"]["num_ctx"] == 8192
     assert captured["payload"]["messages"][-1] == {"role": "user", "content": "hi"}
 
 
