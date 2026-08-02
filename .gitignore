@@ -22,6 +22,9 @@ Thumbs.db
 # secrets
 .env
 
+# local data (face embeddings, memories)
+*.db
+
 # downloaded voice models
 voices/
 

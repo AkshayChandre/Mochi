@@ -49,6 +49,17 @@ python -m piper.download_voices en_US-amy-medium --data-dir voices
 mochi
 ```
 
+### Face recognition (any webcam)
+
+```powershell
+pip install -e .[vision]
+mochi-vision enroll "Akshay"    # look at the camera for 5 captures
+mochi-vision watch              # live: prints who it sees + confidence
+mochi-vision list               # enrolled people
+```
+
+Embeddings live in `mochi.db` (SQLite, local only, gitignored).
+
 Mochi boots with a chirp and starts listening immediately — just talk.
 Silence ends a conversation; speaking starts a new one. If audio setup is
 missing, `mochi` falls back to console mode automatically.
