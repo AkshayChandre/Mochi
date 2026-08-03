@@ -6,7 +6,13 @@ import time
 
 import numpy as np
 
-from mochi.constants import CAMERA_INDEX, DB_PATH, ENROLL_FRAMES, FACE_MATCH_THRESHOLD
+from mochi.constants import (
+    CAMERA_INDEX,
+    DB_PATH,
+    ENROLL_FRAMES,
+    FACE_MATCH_THRESHOLD,
+    STRANGER_FRAMES,
+)
 
 
 class FaceDB:
@@ -40,6 +46,12 @@ class FaceDB:
             if s > score:
                 best, score = name, s
         return (best, score) if score >= FACE_MATCH_THRESHOLD else (None, score)
+
+
+def track_stranger(seen: list[np.ndarray], emb: np.ndarray) -> list[np.ndarray]:
+    if seen and float(np.dot(emb, seen[-1])) < FACE_MATCH_THRESHOLD:
+        return [emb]
+    return [*seen, emb]
 
 
 class Recognizer:
@@ -88,13 +100,28 @@ def main() -> None:
         db.add(name, mean / np.linalg.norm(mean))
         print(f"enrolled {name}")
         return
-    print("watching — Ctrl+C to quit")
+    print("watching — Ctrl+C to quit; strangers get asked for a name")
+    strangers: list[np.ndarray] = []
     try:
         while True:
             emb = rec.embedding()
-            if emb is not None:
-                name, score = db.identify(emb)
-                print(f"{name or 'stranger'}  ({score:.2f})")
+            if emb is None:
+                strangers = []
+                time.sleep(0.5)
+                continue
+            name, score = db.identify(emb)
+            print(f"{name or 'stranger'}  ({score:.2f})")
+            if name:
+                strangers = []
+            else:
+                strangers = track_stranger(strangers, emb)
+                if len(strangers) >= STRANGER_FRAMES:
+                    new = input("new face! what's their name? (Enter to skip): ").strip()
+                    if new:
+                        mean = np.mean(strangers, axis=0)
+                        db.add(new, mean / np.linalg.norm(mean))
+                        print(f"enrolled {new}")
+                    strangers = []
             time.sleep(0.5)
     except KeyboardInterrupt:
         print("\nbye")

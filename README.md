@@ -17,6 +17,7 @@ pip install -e .[dev]
 mochi                     # face + voice together (needs Ollama running)
 mochi-face                # face only
 mochi-voice               # terminal chat only
+mochi-vision watch        # face recognition (needs .[vision] extra, see below)
 ```
 
 ### Repo layout
@@ -52,13 +53,18 @@ mochi
 ### Face recognition (any webcam)
 
 ```powershell
-pip install -e .[vision]
+pip install -e .[vision]        # one-time; downloads the InsightFace model on first run
 mochi-vision enroll "Akshay"    # look at the camera for 5 captures
 mochi-vision watch              # live: prints who it sees + confidence
 mochi-vision list               # enrolled people
 ```
 
-Embeddings live in `mochi.db` (SQLite, local only, gitignored).
+`watch` auto-enrolls: when an unknown face stays in frame for a few
+captures, it asks "new face! what's their name?" — type a name to save
+them, Enter to ignore. Embeddings live in `mochi.db` (SQLite, local
+only, gitignored). Tuning knobs in `constants.py`: `CAMERA_INDEX` if
+the wrong camera opens, `FACE_MATCH_THRESHOLD` if lighting causes
+misses or false matches.
 
 Mochi boots with a chirp and starts listening immediately — just talk.
 Silence ends a conversation; speaking starts a new one. If audio setup is

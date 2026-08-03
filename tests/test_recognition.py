@@ -2,7 +2,7 @@ import pytest
 
 np = pytest.importorskip("numpy")
 
-from mochi.vision.recognition import FaceDB  # noqa: E402
+from mochi.vision.recognition import FaceDB, track_stranger  # noqa: E402
 
 
 def vec(seed):
@@ -26,6 +26,14 @@ def test_stranger_below_threshold(tmp_path):
     name, score = db.identify(vec(99))
     assert name is None
     assert score < 0.45
+
+
+def test_same_stranger_accumulates_different_resets():
+    a, b = vec(1), vec(99)
+    seen = track_stranger([], a)
+    seen = track_stranger(seen, a)
+    assert len(seen) == 2
+    assert len(track_stranger(seen, b)) == 1
 
 
 def test_re_enroll_updates_instead_of_duplicating(tmp_path):
