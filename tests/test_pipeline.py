@@ -78,15 +78,18 @@ def test_silence_ends_conversation():
     assert states == [State.LISTENING, State.IDLE]
 
 
-def test_wake_leftover_becomes_first_utterance():
-    class LeftoverWake:
+def test_wake_greeting_is_spoken_not_asked():
+    class GreetWake:
         def wait(self):
-            return "tell me a joke"
+            return "Hi Akshay!"
 
+    states = []
     brain, tts = Brain(), Tts()
-    pipe = VoicePipeline(LeftoverWake(), Stt(), brain, tts)
+    pipe = VoicePipeline(GreetWake(), Stt(), brain, tts, states.append)
     pipe.converse()
-    assert brain.asked == ["tell me a joke"]
+    assert tts.spoken == ["Hi Akshay!"]
+    assert brain.asked == []
+    assert states[0] == State.SPEAKING
 
 
 def test_intercept_bypasses_brain():

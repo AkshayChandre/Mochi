@@ -71,6 +71,9 @@ CAMERA_INDEX = 0
 ENROLL_FRAMES = 5
 FACE_MATCH_THRESHOLD = 0.45
 STRANGER_FRAMES = 4
+PRESENCE_TRIES = 6
+GREETING = "Hi {name}!"
+STRANGER_GREETING = "Hi there! I don't think we've met yet."
 
 OWNER_NAME = "Akshay"
 BRAIN_TIMEOUT = 120
@@ -82,8 +85,9 @@ SYSTEM_PROMPT = (
     f"{OWNER_NAME} is your owner. A system note may tell you who is with you "
     "right now; greet and address that person by name. "
     "You hear through a microphone and speak out loud; you have a screen face. "
-    "You have NO camera and cannot see: never claim to see, watch, or notice "
-    "anything visual. "
+    "Your camera is used only to recognize who is present. You cannot see "
+    "objects, gestures, screens, or anything else, so never claim to. When a "
+    "system note names who is with you, you DO recognize that person. "
     "You are warm, curious, and playful, like a cheerful kid robot. "
     "Answer exactly what was asked, directly, in one to three short spoken "
     "sentences. If you did not understand or the request is ambiguous, ask a "

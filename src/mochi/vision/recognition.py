@@ -11,6 +11,7 @@ from mochi.constants import (
     DB_PATH,
     ENROLL_FRAMES,
     FACE_MATCH_THRESHOLD,
+    PRESENCE_TRIES,
     STRANGER_FRAMES,
 )
 
@@ -74,6 +75,20 @@ class Recognizer:
             return None
         largest = max(faces, key=lambda f: f.bbox[2] - f.bbox[0])
         return largest.normed_embedding
+
+
+class Presence:
+    def __init__(self) -> None:
+        self.db = FaceDB()
+        self.rec = Recognizer()
+
+    def whos_there(self, tries: int = PRESENCE_TRIES) -> tuple[str | None, bool]:
+        for _ in range(tries):
+            emb = self.rec.embedding()
+            if emb is not None:
+                return self.db.identify(emb)[0], True
+            time.sleep(0.2)
+        return None, False
 
 
 def main() -> None:
