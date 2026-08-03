@@ -4,6 +4,8 @@ from collections.abc import Callable, Iterator
 from enum import Enum
 from typing import Protocol
 
+from mochi.constants import MEMORY_ASK, MEMORY_SAVED, YES_WORDS
+
 
 class State(str, Enum):
     IDLE = "idle"
@@ -41,6 +43,7 @@ class VoicePipeline:
         on_state: Callable[[State], None] | None = None,
         intercept: Callable[[str], str | None] | None = None,
         on_display: Callable[[str], None] | None = None,
+        memory=None,
     ) -> None:
         self.wake = wake
         self.stt = stt
@@ -49,6 +52,7 @@ class VoicePipeline:
         self.on_state = on_state
         self.intercept = intercept
         self.on_display = on_display
+        self.memory = memory
         self.state = State.IDLE
 
     def set_state(self, state: State) -> None:
@@ -64,6 +68,7 @@ class VoicePipeline:
             self.tts.say(greeting)
             self.tts.flush()
             parts.append(greeting)
+        chatted = False
         while True:
             self.set_state(State.LISTENING)
             text = self.stt.listen().strip()
@@ -76,6 +81,7 @@ class VoicePipeline:
                 parts.append(reply)
                 continue
             self.set_state(State.THINKING)
+            chatted = True
             spoke = False
             for sentence in self.brain.chat_stream(text):
                 if not spoke:
@@ -87,8 +93,25 @@ class VoicePipeline:
             if self.on_display:
                 for block in self.brain.last_blocks:
                     self.on_display(block)
+        if chatted and self.memory:
+            self.confirm_memory()
         self.set_state(State.IDLE)
         return " ".join(parts)
+
+    def confirm_memory(self) -> None:
+        fact = self.memory.extract()
+        if not fact:
+            return
+        self.set_state(State.SPEAKING)
+        self.tts.say(MEMORY_ASK.format(fact=fact))
+        self.tts.flush()
+        self.set_state(State.LISTENING)
+        answer = self.stt.listen().lower()
+        if any(word in answer for word in YES_WORDS):
+            self.memory.save(fact)
+            self.set_state(State.SPEAKING)
+            self.tts.say(MEMORY_SAVED)
+            self.tts.flush()
 
     def run(self) -> None:
         while True:

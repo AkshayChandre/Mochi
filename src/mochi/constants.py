@@ -75,6 +75,19 @@ PRESENCE_TRIES = 6
 GREETING = "Hi {name}!"
 STRANGER_GREETING = "Hi there! I don't think we've met yet."
 
+MEMORY_RECALL_LIMIT = 12
+MEMORY_MAX_LEN = 120
+MEMORY_ASK = "Should I remember this? {fact}"
+MEMORY_SAVED = "Got it, I'll remember!"
+YES_WORDS = ("yes", "yeah", "yep", "sure", "okay", "ok", "remember")
+MEMORY_EXTRACT_PROMPT = (
+    "You extract memories for a companion robot. From the conversation "
+    "lines given, output ONE short new fact worth remembering about the "
+    "person (preferences, plans, life events, relationships), under 15 "
+    "words, plain text, no quotes. If nothing is worth remembering, "
+    "output exactly NONE."
+)
+
 OWNER_NAME = "Akshay"
 BRAIN_TIMEOUT = 120
 MAX_HISTORY = 40

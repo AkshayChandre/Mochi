@@ -6,6 +6,12 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Persistent memory: after a conversation, Mochi extracts one worthwhile
+  fact, asks aloud for permission, and stores it per person in mochi.db;
+  saved memories are recalled into every future conversation and survive
+  restarts. Nothing is ever stored without a spoken yes.
+
 ### Changed
 - Streaming voice: LLM replies stream sentence-by-sentence into TTS, so
   Mochi starts speaking after the first sentence instead of the full

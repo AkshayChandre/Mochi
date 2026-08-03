@@ -111,6 +111,44 @@ def test_display_blocks_forwarded():
     assert shown == ["print('hi')"]
 
 
+class Mem:
+    def __init__(self, fact):
+        self.fact = fact
+        self.saved = []
+
+    def extract(self):
+        return self.fact
+
+    def save(self, fact):
+        self.saved.append(fact)
+
+
+def test_memory_saved_on_spoken_yes():
+    brain, tts = Brain(), Tts()
+    mem = Mem("Akshay likes tea")
+    pipe = VoicePipeline(Wake(), Stt("hi", "", "yes please"), brain, tts, memory=mem)
+    pipe.converse()
+    assert mem.saved == ["Akshay likes tea"]
+    assert any("remember" in s.lower() for s in tts.spoken)
+
+
+def test_memory_declined_not_saved():
+    brain, tts = Brain(), Tts()
+    mem = Mem("Akshay likes tea")
+    pipe = VoicePipeline(Wake(), Stt("hi", "", "no thanks"), brain, tts, memory=mem)
+    pipe.converse()
+    assert mem.saved == []
+
+
+def test_no_memory_ask_when_nothing_was_said():
+    brain, tts = Brain(), Tts()
+    mem = Mem("stale fact")
+    pipe = VoicePipeline(Wake(), Stt(), brain, tts, memory=mem)
+    pipe.converse()
+    assert tts.spoken == []
+    assert mem.saved == []
+
+
 def test_every_state_maps_to_a_real_emotion():
     assert set(STATE_EMOTION) == {s.value for s in State}
     assert set(STATE_EMOTION.values()) <= set(EMOTIONS)

@@ -99,6 +99,26 @@ def test_person_note_injected_transiently(monkeypatch):
     assert bc.history[1]["content"] == "Ravi: yo"
 
 
+def test_memories_injected_when_store_present(monkeypatch):
+    captured = {}
+
+    def fake_urlopen(req, timeout):
+        captured["payload"] = json.loads(req.data)
+        return stream_lines("[happy] Hi.")
+
+    monkeypatch.setattr(brain_client, "urlopen", fake_urlopen)
+    bc = BrainClient(host="test", port=1)
+
+    class Store:
+        def recall(self, person):
+            return ["Akshay: likes tea"]
+
+    bc.store = Store()
+    list(bc.chat_stream("yo"))
+    assert any("likes tea" in m["content"] for m in captured["payload"]["messages"])
+    assert all("likes tea" not in m["content"] for m in bc.history)
+
+
 def test_stream_without_tag_defaults_happy(monkeypatch):
     resp = stream_lines("no tag here")
     monkeypatch.setattr(brain_client, "urlopen", lambda req, timeout: resp)

@@ -59,6 +59,13 @@ mochi-vision watch              # live: prints who it sees + confidence
 mochi-vision list               # enrolled people
 ```
 
+### Memory
+
+After a conversation ends, Mochi may ask "Should I remember this?" —
+say yes and the fact is stored per person in `mochi.db`, recalled in
+every future conversation, and survives restarts. Decline and nothing
+is saved; Mochi never remembers without permission.
+
 `watch` auto-enrolls: when an unknown face stays in frame for a few
 captures, it asks "new face! what's their name?" — type a name to save
 them, Enter to ignore. Embeddings live in `mochi.db` (SQLite, local

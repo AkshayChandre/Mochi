@@ -76,6 +76,11 @@ def make_intercept(face: MochiFace):
 
 
 def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
+    from mochi.brain.memory import Memory, MemoryStore
+
+    store = MemoryStore()
+    brain.store = store
+    memory = Memory(brain, store)
     try:
         from mochi.voice.sounds import BOOT_SOUND, RobotSounds
         from mochi.voice.stt import WhisperTranscriber
@@ -107,6 +112,7 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
         make_apply(face, brain, sounds),
         make_intercept(face),
         face.show_card,
+        memory,
     )
 
 

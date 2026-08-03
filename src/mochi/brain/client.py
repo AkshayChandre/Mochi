@@ -57,6 +57,7 @@ class BrainClient:
         self.last_emotion = "happy"
         self.last_blocks: list[str] = []
         self.person: str | None = None
+        self.store = None
 
     def chat_stream(self, text: str) -> Iterator[str]:
         spoken_by = f"{self.person}: {text}" if self.person else text
@@ -64,6 +65,8 @@ class BrainClient:
         self.last_emotion = "happy"
         self.last_blocks = []
         msgs = list(self.history)
+        if self.store and (facts := self.store.recall(self.person)):
+            msgs.insert(1, {"role": "system", "content": "You remember: " + "; ".join(facts)})
         if self.person:
             msgs.insert(
                 1, {"role": "system", "content": f"{self.person} is talking to you right now."}
@@ -120,6 +123,21 @@ class BrainClient:
             yield tail
         self.history.append({"role": "assistant", "content": raw})
         self.trim()
+
+    def ask_once(self, system: str, user: str) -> str:
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            "stream": False,
+            "keep_alive": KEEP_ALIVE,
+            "options": BRAIN_OPTIONS,
+        }
+        req = Request(self.url, json.dumps(payload).encode(), {"Content-Type": "application/json"})
+        with urlopen(req, timeout=BRAIN_TIMEOUT) as resp:
+            return json.load(resp)["message"]["content"].strip()
 
     def consume_tag(self, buffer: str) -> tuple[str, bool]:
         closers = {"[": "]", "(": ")", "*": "*"}
