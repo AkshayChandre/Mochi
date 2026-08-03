@@ -1,10 +1,10 @@
-# Mochi — Open-Source Desktop AI Companion
+# Mochi: Open-Source Desktop AI Companion
 
 A soft, blob-shaped robot that gives physical presence to a fully local,
-fully open-source AI. The robot body (Raspberry Pi) is the presence layer;
-your PC is the brain. Zero paid services, zero cloud dependency.
+fully open-source AI. The robot body is the presence layer;
+PC is the brain. Zero paid services, zero cloud dependency.
 
-## v0.1 — Face Engine (this repo, today)
+## v0.1: Face Engine
 
 Runs on your PC now; the same file runs on the Pi's 720x720 round display later.
 
