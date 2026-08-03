@@ -57,12 +57,16 @@ class VoicePipeline:
             self.on_state(state)
 
     def converse(self) -> str:
-        pending = self.wake.wait().strip()
+        greeting = self.wake.wait().strip()
         parts: list[str] = []
+        if greeting:
+            self.set_state(State.SPEAKING)
+            self.tts.say(greeting)
+            self.tts.flush()
+            parts.append(greeting)
         while True:
             self.set_state(State.LISTENING)
-            text = pending or self.stt.listen().strip()
-            pending = ""
+            text = self.stt.listen().strip()
             if not text:
                 break
             if self.intercept and (reply := self.intercept(text)) is not None:

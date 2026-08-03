@@ -5,7 +5,7 @@ import threading
 import pygame as pg
 
 from mochi.brain.client import BrainClient, BrainOfflineError
-from mochi.constants import FPS, SIZE, STATE_EMOTION
+from mochi.constants import FPS, GREETING, SIZE, STATE_EMOTION, STRANGER_GREETING
 from mochi.face.engine import MochiFace
 from mochi.voice.pipeline import State, VoicePipeline
 
@@ -13,6 +13,44 @@ from mochi.voice.pipeline import State, VoicePipeline
 class InstantWake:
     def wait(self) -> str:
         return ""
+
+
+class VisionWake:
+    def __init__(self, presence, brain: BrainClient) -> None:
+        self.presence = presence
+        self.brain = brain
+        self.greeted: str | None = None
+
+    def wait(self) -> str:
+        name, seen = self.presence.whos_there()
+        self.brain.person = name
+        if not seen:
+            self.greeted = None
+            return ""
+        if name:
+            if name != self.greeted:
+                self.greeted = name
+                return GREETING.format(name=name)
+            return ""
+        if self.greeted != "?":
+            self.greeted = "?"
+            return STRANGER_GREETING
+        return ""
+
+
+class VisionStt:
+    def __init__(self, stt, presence, brain: BrainClient) -> None:
+        self.stt = stt
+        self.presence = presence
+        self.brain = brain
+
+    def listen(self) -> str:
+        text = self.stt.listen()
+        if text.strip():
+            name, seen = self.presence.whos_there(tries=2)
+            if seen:
+                self.brain.person = name
+        return text
 
 
 def make_apply(face: MochiFace, brain: BrainClient, sounds=None):
@@ -45,6 +83,15 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
 
         sounds = RobotSounds()
         wake, stt, tts = InstantWake(), WhisperTranscriber(), KidRobotVoice()
+        try:
+            from mochi.vision.recognition import Presence
+
+            presence = Presence()
+            wake = VisionWake(presence, brain)
+            stt = VisionStt(stt, presence, brain)
+            print("vision: face recognition active")
+        except Exception as verr:
+            print(f"vision unavailable: {verr} — running without recognition")
         sounds.play(BOOT_SOUND)
     except Exception as err:
         print(f"audio unavailable: {err}")

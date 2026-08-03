@@ -74,6 +74,31 @@ def test_paren_style_tag_consumed(monkeypatch):
     assert bc.last_emotion == "excited"
 
 
+def test_bare_dash_tag_consumed_even_split_across_chunks(monkeypatch):
+    resp = stream_lines("neutral", " - Hi there.")
+    monkeypatch.setattr(brain_client, "urlopen", lambda req, timeout: resp)
+    bc = BrainClient(host="test", port=1)
+    assert list(bc.chat_stream("hi")) == ["Hi there."]
+    assert bc.last_emotion == "neutral"
+
+
+def test_person_note_injected_transiently(monkeypatch):
+    captured = {}
+
+    def fake_urlopen(req, timeout):
+        captured["payload"] = json.loads(req.data)
+        return stream_lines("[happy] Hi Ravi.")
+
+    monkeypatch.setattr(brain_client, "urlopen", fake_urlopen)
+    bc = BrainClient(host="test", port=1)
+    bc.person = "Ravi"
+    list(bc.chat_stream("yo"))
+    msgs = captured["payload"]["messages"]
+    assert msgs[1] == {"role": "system", "content": "Ravi is talking to you right now."}
+    assert len(bc.history) == 3
+    assert bc.history[1]["content"] == "Ravi: yo"
+
+
 def test_stream_without_tag_defaults_happy(monkeypatch):
     resp = stream_lines("no tag here")
     monkeypatch.setattr(brain_client, "urlopen", lambda req, timeout: resp)

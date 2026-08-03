@@ -25,11 +25,18 @@ audio = [
     "faster-whisper>=1.0",
     "piper-tts>=1.2",
 ]
+vision = [
+    "numpy>=1.26",
+    "opencv-python>=4.9",
+    "insightface>=0.7",
+    "onnxruntime>=1.17",
+]
 
 [project.scripts]
 mochi = "mochi.app:main"
 mochi-face = "mochi.face.engine:main"
 mochi-voice = "mochi.voice.console:main"
+mochi-vision = "mochi.vision.recognition:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
