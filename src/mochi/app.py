@@ -15,6 +15,20 @@ class InstantWake:
         return ""
 
 
+class VisionWake:
+    def __init__(self, brain: BrainClient) -> None:
+        from mochi.vision.recognition import FaceDB, Recognizer
+
+        self.brain = brain
+        self.db = FaceDB()
+        self.rec = Recognizer()
+
+    def wait(self) -> str:
+        emb = self.rec.embedding()
+        self.brain.person = self.db.identify(emb)[0] if emb is not None else None
+        return ""
+
+
 def make_apply(face: MochiFace, brain: BrainClient, sounds=None):
     def apply(state: State) -> None:
         if sounds is not None:
@@ -45,6 +59,11 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
 
         sounds = RobotSounds()
         wake, stt, tts = InstantWake(), WhisperTranscriber(), KidRobotVoice()
+        try:
+            wake = VisionWake(brain)
+            print("vision: face recognition active")
+        except Exception as verr:
+            print(f"vision unavailable: {verr} — running without recognition")
         sounds.play(BOOT_SOUND)
     except Exception as err:
         print(f"audio unavailable: {err}")

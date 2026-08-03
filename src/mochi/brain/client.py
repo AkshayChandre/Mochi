@@ -56,14 +56,20 @@ class BrainClient:
         self.history: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
         self.last_emotion = "happy"
         self.last_blocks: list[str] = []
+        self.person: str | None = None
 
     def chat_stream(self, text: str) -> Iterator[str]:
         self.history.append({"role": "user", "content": text})
         self.last_emotion = "happy"
         self.last_blocks = []
+        msgs = list(self.history)
+        if self.person:
+            msgs.insert(
+                1, {"role": "system", "content": f"{self.person} is talking to you right now."}
+            )
         payload = {
             "model": self.model,
-            "messages": self.history,
+            "messages": msgs,
             "stream": True,
             "keep_alive": KEEP_ALIVE,
             "options": BRAIN_OPTIONS,
@@ -121,7 +127,7 @@ class BrainClient:
             return buffer, False
         closer = closers.get(lead[0])
         if closer is None:
-            return buffer, True
+            return self.consume_bare_tag(buffer, lead)
         end = lead.find(closer, 1)
         if end == -1:
             return (buffer, False) if len(lead) < 24 else (buffer, True)
@@ -129,6 +135,21 @@ class BrainClient:
         if tag in EMOTIONS:
             self.last_emotion = tag
         return lead[end + 1 :].lstrip(), True
+
+    def consume_bare_tag(self, buffer: str, lead: str) -> tuple[str, bool]:
+        low = lead.lower()
+        for emo in EMOTIONS:
+            if low.startswith(emo):
+                after = lead[len(emo) :].lstrip()
+                if not after:
+                    return buffer, False
+                if after[0] in ":-–—.":
+                    self.last_emotion = emo
+                    return after[1:].lstrip(), True
+                return buffer, True
+            if emo.startswith(low):
+                return buffer, False
+        return buffer, True
 
     def trim(self) -> None:
         if len(self.history) > MAX_HISTORY:
