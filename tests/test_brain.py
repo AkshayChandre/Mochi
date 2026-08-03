@@ -96,6 +96,7 @@ def test_person_note_injected_transiently(monkeypatch):
     msgs = captured["payload"]["messages"]
     assert msgs[1] == {"role": "system", "content": "Ravi is talking to you right now."}
     assert len(bc.history) == 3
+    assert bc.history[1]["content"] == "Ravi: yo"
 
 
 def test_stream_without_tag_defaults_happy(monkeypatch):

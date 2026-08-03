@@ -59,7 +59,8 @@ class BrainClient:
         self.person: str | None = None
 
     def chat_stream(self, text: str) -> Iterator[str]:
-        self.history.append({"role": "user", "content": text})
+        spoken_by = f"{self.person}: {text}" if self.person else text
+        self.history.append({"role": "user", "content": spoken_by})
         self.last_emotion = "happy"
         self.last_blocks = []
         msgs = list(self.history)

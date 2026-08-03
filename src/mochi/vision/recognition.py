@@ -63,10 +63,13 @@ class Recognizer:
         self.app = FaceAnalysis(name="buffalo_s", providers=["CPUExecutionProvider"])
         self.app.prepare(ctx_id=0, det_size=(640, 640))
         self.cam = cv2.VideoCapture(CAMERA_INDEX)
+        self.cam.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         if not self.cam.isOpened():
             raise RuntimeError(f"no camera at index {CAMERA_INDEX} (see constants.CAMERA_INDEX)")
 
     def embedding(self) -> np.ndarray | None:
+        for _ in range(3):
+            self.cam.grab()
         ok, frame = self.cam.read()
         if not ok:
             return None
