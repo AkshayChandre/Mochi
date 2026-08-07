@@ -25,6 +25,8 @@ class Emotion:
     dim: float = 1.0
     gaze_lock: tuple[float, float] | None = None
     style: str = "rect"
+    lid: float = 0.0
+    mouth_open: float = 0.0
     brow: float = 0.0
     brow_asym: float = 0.0
     tear: float = 0.0
@@ -45,6 +47,14 @@ EMOTIONS: dict[str, Emotion] = {
     "confused": Emotion(w=170, h=170, mouth=-0.25, style="swirl", brow=0.5, brow_asym=1.0),
     "laughing": Emotion(h=136, crescent=0.95, mouth=1.0, bounce=0.8, tear=0.6),
     "shy": Emotion(w=138, h=132, crescent=0.35, mouth=0.5, gaze_lock=(-0.4, 0.5), wink=1.0),
+    "smug": Emotion(w=168, lid=0.42, squint=0.2, mouth=0.6, brow=0.5, brow_asym=1.0),
+    "bored": Emotion(w=170, lid=0.55, mouth=-0.15, gaze_lock=(0.0, 0.5)),
+    "suspicious": Emotion(w=176, lid=0.48, mouth=-0.3, brow=0.85, gaze_lock=(-0.65, 0.1)),
+    "sleepy": Emotion(w=160, lid=0.68, mouth_open=0.55, gaze_lock=(0.0, 0.4)),
+    "starstruck": Emotion(w=176, h=176, style="star", sparkle=1.0, mouth=1.0, bounce=0.4),
+    "shocked": Emotion(w=196, h=206, r=100, mouth_open=0.9, brow=0.5),
+    "proud": Emotion(h=150, crescent=0.8, mouth=0.9, sparkle=0.5, brow=0.3),
+    "error": Emotion(w=150, h=150, style="x", mouth=-0.5, shake=0.5, dim=0.85),
     "sleeping": Emotion(h=16, r=8, dim=0.28, gaze_lock=(0.0, 0.0)),
 }
 EMOTION_KEYS = list(EMOTIONS)
@@ -133,7 +143,8 @@ SYSTEM_PROMPT = (
     "Always speak English only. "
     "Start every reply with exactly one emotion tag from: "
     "[happy] [excited] [sad] [angry] [love] [curious] [confused] [laughing] "
-    "[shy] [surprised] [thinking] [neutral]. "
+    "[shy] [smug] [bored] [suspicious] [sleepy] [starstruck] [shocked] "
+    "[proud] [surprised] [thinking] [neutral]. "
     "The tag is silent metadata for your face: never say it aloud and never "
     "announce your emotional state in words. "
     "Use a ``` fenced block ONLY for actual source code, which is shown on "
@@ -211,6 +222,14 @@ EMOTION_COLORS = {
     "confused": (200, 190, 120),
     "laughing": (120, 255, 160),
     "shy": (255, 160, 190),
+    "smug": (190, 255, 130),
+    "bored": (150, 160, 175),
+    "suspicious": (215, 175, 90),
+    "sleepy": (130, 150, 220),
+    "starstruck": (255, 220, 100),
+    "shocked": (255, 245, 150),
+    "proud": (255, 200, 90),
+    "error": (255, 70, 70),
     "sleeping": (70, 95, 130),
 }
 BLUSH_EMOTIONS = frozenset({"happy", "excited", "love", "shy", "laughing"})

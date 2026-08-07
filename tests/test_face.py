@@ -56,7 +56,7 @@ def test_sleeping_suppresses_blink():
 def test_parade_cycles_all_emotions_then_neutral(screen):
     face = MochiFace()
     face.play_parade()
-    for _ in range(1200):
+    for _ in range(60 * (len(EMOTIONS) + 2)):
         face.update(1 / 60)
     assert face.parade == []
     assert face.emotion == "neutral"

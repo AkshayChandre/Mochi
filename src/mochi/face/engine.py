@@ -98,11 +98,11 @@ def spiral_points(cx: float, cy: float, radius: float, turns: float = 2.4) -> li
     ]
 
 
-def star_points(cx: float, cy: float, size: float) -> list[tuple[float, float]]:
+def star_points(cx: float, cy: float, size: float, spikes: int = 4) -> list[tuple[float, float]]:
     pts = []
-    for i in range(8):
-        a = math.tau * i / 8
-        r = size if i % 2 == 0 else size * 0.34
+    for i in range(spikes * 2):
+        a = math.tau * i / (spikes * 2) - math.pi / 2
+        r = size if i % 2 == 0 else size * 0.42
         pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
     return pts
 
@@ -261,6 +261,10 @@ class MochiFace:
                 pg.draw.polygon(screen, color, heart_points(*center, w, h))
             elif style == "swirl" and self.blink > 0.5:
                 pg.draw.lines(screen, color, False, spiral_points(*center, w / 2), 7)
+            elif style == "star" and self.blink > 0.5:
+                pg.draw.polygon(screen, color, star_points(*center, w / 2, spikes=5))
+            elif style == "x":
+                self.draw_x_eye(screen, center, w, color)
             else:
                 self.draw_eye(screen, center, w, h, s, side, color, scale)
             if s["brow"] > 0.02:
@@ -290,15 +294,30 @@ class MochiFace:
                 bob = math.sin(self.t * 2 + i) * 6
                 screen.blit(z, (cx + 118 + i * 24, cy - 70 - i * 30 + bob))
 
-        mouth_val = s["mouth"]
-        if self.speaking:
-            mouth_val = TALK_BASE + TALK_AMP * math.sin(self.t * TALK_FREQ)
-        self.draw_mouth(screen, cx, cy + MOUTH_OFFSET_Y + gy * 0.4, mouth_val, color)
+        mouth_y = cy + MOUTH_OFFSET_Y + gy * 0.4
+        if s["mouth_open"] > 0.05 and not self.speaking:
+            rw = int(MOUTH_HALF_WIDTH * s["mouth_open"])
+            rh = int(MOUTH_HALF_WIDTH * 1.3 * s["mouth_open"])
+            pg.draw.ellipse(screen, color, (cx - rw / 2, mouth_y - rh / 2, rw, rh))
+        else:
+            mouth_val = s["mouth"]
+            if self.speaking:
+                mouth_val = TALK_BASE + TALK_AMP * math.sin(self.t * TALK_FREQ)
+            self.draw_mouth(screen, cx, mouth_y, mouth_val, color)
+
+    def draw_x_eye(self, screen, center, w, color) -> None:
+        arm = w / 2
+        cx, cy = center
+        pg.draw.line(screen, color, (cx - arm, cy - arm), (cx + arm, cy + arm), 16)
+        pg.draw.line(screen, color, (cx - arm, cy + arm), (cx + arm, cy - arm), 16)
 
     def draw_eye(self, screen, center, w, h, s, side, color, scale) -> None:
         r = min(s["r"] * scale, w / 2, h / 2)
         surf = pg.Surface((int(w) + 4, int(h) + 4), pg.SRCALPHA)
         pg.draw.rect(surf, color, (2, 2, int(w), int(h)), border_radius=int(r))
+        if s["lid"] > 0.02:
+            lid_h = 2 + h * s["lid"]
+            pg.draw.rect(surf, BACKGROUND, (0, 0, int(w) + 4, int(lid_h)), border_radius=int(r))
         if s["crescent"] > 0.02:
             cover_y = 2 + h * (1.08 - 0.78 * s["crescent"])
             cover = (0, cover_y, int(w) + 4, int(h) + 4)
