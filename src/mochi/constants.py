@@ -24,18 +24,42 @@ class Emotion:
     bounce: float = 0.0
     dim: float = 1.0
     gaze_lock: tuple[float, float] | None = None
+    style: str = "rect"
+    lid: float = 0.0
+    mouth_open: float = 0.0
+    brow: float = 0.0
+    brow_asym: float = 0.0
+    tear: float = 0.0
+    sparkle: float = 0.0
+    wink: float = 0.0
+    shake: float = 0.0
 
 EMOTIONS: dict[str, Emotion] = {
     "neutral": Emotion(),
     "happy": Emotion(h=164, crescent=0.6, mouth=1.0),
-    "sad": Emotion(h=142, tilt=14, mouth=-1.0, gaze_lock=(0.0, 0.55)),
-    "thinking": Emotion(squint=0.55, gaze_lock=(-0.6, -0.55)),
+    "sad": Emotion(h=142, tilt=14, mouth=-1.0, gaze_lock=(0.0, 0.55), tear=1.0),
+    "thinking": Emotion(squint=0.55, gaze_lock=(-0.6, -0.55), brow=0.4, brow_asym=1.0),
     "surprised": Emotion(w=186, h=198, r=96, mouth=0.15),
-    "excited": Emotion(h=150, crescent=0.7, mouth=1.0, bounce=1.0),
+    "excited": Emotion(h=150, crescent=0.7, mouth=1.0, bounce=1.0, sparkle=1.0),
+    "angry": Emotion(w=164, h=96, r=20, mouth=-0.8, brow=1.0, shake=1.0),
+    "love": Emotion(w=168, h=168, mouth=1.0, bounce=0.3, style="heart", sparkle=0.8),
+    "curious": Emotion(w=152, h=176, squint=-0.5, brow=0.7, brow_asym=1.0, gaze_lock=(0.55, -0.5)),
+    "confused": Emotion(w=170, h=170, mouth=-0.25, style="swirl", brow=0.5, brow_asym=1.0),
+    "laughing": Emotion(h=136, crescent=0.95, mouth=1.0, bounce=0.8, tear=0.6),
+    "shy": Emotion(w=138, h=132, crescent=0.35, mouth=0.5, gaze_lock=(-0.4, 0.5), wink=1.0),
+    "smug": Emotion(w=168, lid=0.42, squint=0.2, mouth=0.6, brow=0.5, brow_asym=1.0),
+    "bored": Emotion(w=170, lid=0.55, mouth=-0.15, gaze_lock=(0.0, 0.5)),
+    "suspicious": Emotion(w=176, lid=0.48, mouth=-0.3, brow=0.85, gaze_lock=(-0.65, 0.1)),
+    "sleepy": Emotion(w=160, lid=0.68, mouth_open=0.55, gaze_lock=(0.0, 0.4)),
+    "starstruck": Emotion(w=176, h=176, style="star", sparkle=1.0, mouth=1.0, bounce=0.4),
+    "shocked": Emotion(w=196, h=206, r=100, mouth_open=0.9, brow=0.5),
+    "proud": Emotion(h=150, crescent=0.8, mouth=0.9, sparkle=0.5, brow=0.3),
+    "cool": Emotion(w=186, h=104, r=16, style="shades", mouth=0.55, brow=0.0),
+    "error": Emotion(w=150, h=150, style="x", mouth=-0.5, shake=0.5, dim=0.85),
     "sleeping": Emotion(h=16, r=8, dim=0.28, gaze_lock=(0.0, 0.0)),
 }
 EMOTION_KEYS = list(EMOTIONS)
-NUMERIC_FIELDS = [f.name for f in fields(Emotion) if f.name != "gaze_lock"]
+NUMERIC_FIELDS = [f.name for f in fields(Emotion) if f.name not in ("gaze_lock", "style")]
 
 EYE_GAP = 105
 EYE_RAISE = 30
@@ -119,7 +143,9 @@ SYSTEM_PROMPT = (
     "guessing. Never invent facts. "
     "Always speak English only. "
     "Start every reply with exactly one emotion tag from: "
-    "[happy] [excited] [sad] [surprised] [thinking] [neutral]. "
+    "[happy] [excited] [sad] [angry] [love] [curious] [confused] [laughing] "
+    "[shy] [smug] [bored] [suspicious] [sleepy] [starstruck] [shocked] "
+    "[proud] [cool] [surprised] [thinking] [neutral]. "
     "The tag is silent metadata for your face: never say it aloud and never "
     "announce your emotional state in words. "
     "Use a ``` fenced block ONLY for actual source code, which is shown on "
@@ -191,11 +217,43 @@ EMOTION_COLORS = {
     "sad": (95, 130, 255),
     "thinking": (185, 130, 255),
     "surprised": (255, 225, 90),
+    "angry": (255, 90, 80),
+    "love": (255, 120, 190),
+    "curious": (120, 220, 255),
+    "confused": (200, 190, 120),
+    "laughing": (120, 255, 160),
+    "shy": (255, 160, 190),
+    "smug": (190, 255, 130),
+    "bored": (150, 160, 175),
+    "suspicious": (215, 175, 90),
+    "sleepy": (130, 150, 220),
+    "starstruck": (255, 220, 100),
+    "shocked": (255, 245, 150),
+    "proud": (255, 200, 90),
+    "cool": (90, 240, 235),
+    "error": (255, 70, 70),
     "sleeping": (70, 95, 130),
 }
+BLUSH_EMOTIONS = frozenset({"happy", "excited", "love", "shy", "laughing"})
+BROW_THICKNESS = 16
+BROW_LENGTH = 118
+BROW_LIFT = 34
+BROW_ANGLE = 22
+BLUSH_ALPHA = 175
+SHADES_TILT = 7
+SHADES_BRIDGE = 12
+GLINT_COLOR = (255, 255, 255)
+TEAR_COLOR = (120, 190, 255)
+TEAR_RADIUS = 15
+TEAR_FALL = 120
+TEAR_PERIOD = 2.2
+SPARKLE_POINTS = ((-1.15, -0.75, 15), (1.2, -0.6, 11), (1.05, 0.75, 13))
+SHAKE_AMP = 7.0
+SHAKE_FREQ = 26.0
+IDLE_SLEEP_SECONDS = 90.0
 COLOR_EASE_RATE = 6.0
 BLUSH_COLOR = (255, 120, 150)
-PARADE_SECONDS = 1.4
+PARADE_SECONDS = 1.0
 CARD_SECONDS = 20.0
 CARD_MAX_LINES = 200
 CARD_WRAP = 52

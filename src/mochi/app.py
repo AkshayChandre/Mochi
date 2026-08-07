@@ -138,7 +138,7 @@ def start_voice(face: MochiFace) -> None:
                 pipeline.run()
             except BrainOfflineError as err:
                 print(f"brain offline, retrying: {err}")
-                face.set_emotion("sad")
+                face.set_emotion("error")
                 time.sleep(RETRY_SECONDS)
             except Exception as err:
                 print(f"recovered from: {err!r}")
