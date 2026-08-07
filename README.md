@@ -59,6 +59,22 @@ mochi-vision watch              # live: prints who it sees + confidence
 mochi-vision list               # enrolled people
 ```
 
+### Hearing you accurately
+
+`WHISPER_MODEL` in `constants.py` drives accent accuracy: `small.en`
+(default) handles Indian, British, and other accents far better than
+`base.en`; `medium.en` is better still if you have the patience or a
+GPU. The mic auto-calibrates to room noise on every listen, so no
+threshold tweaking is normally needed; `SILENCE_RMS` is the floor and
+`NOISE_MULT` how far above the room it must be.
+
+GPU (much faster with the bigger models):
+
+```powershell
+pip install nvidia-cublas-cu12 nvidia-cudnn-cu12
+# then set WHISPER_DEVICE = "cuda" in constants.py
+```
+
 ### Memory
 
 After a conversation ends, Mochi may ask "Should I remember this?" -

@@ -15,6 +15,23 @@ def test_rms_discriminates_silence_from_speech():
     speech = (0.1 * np.sin(math.tau * 200 * t)).astype(np.float32)
     assert audio.rms(silence) < SILENCE_RMS <= audio.rms(speech)
 
+def test_noise_gate_adapts_and_clamps():
+    from mochi.constants import NOISE_GATE_CEILING, SILENCE_RMS
+
+    assert audio.noise_gate(0.0) == SILENCE_RMS
+    assert audio.noise_gate(0.02) > SILENCE_RMS
+    assert audio.noise_gate(9.9) == SILENCE_RMS * NOISE_GATE_CEILING
+
+
+def test_normalize_lifts_quiet_speech():
+    from mochi.constants import TARGET_PEAK
+
+    quiet = (np.sin(np.linspace(0, 10, 400)) * 0.02).astype(np.float32)
+    assert np.max(np.abs(audio.normalize(quiet))) == pytest.approx(TARGET_PEAK, rel=0.01)
+    silence = np.zeros(100, dtype=np.float32)
+    assert np.array_equal(audio.normalize(silence), silence)
+
+
 def test_tone_shape_and_fades():
     wave = sounds.tone(880, 0.1)
     assert len(wave) == int(SOUND_SAMPLE_RATE * 0.1)

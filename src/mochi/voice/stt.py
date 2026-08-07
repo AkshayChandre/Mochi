@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from mochi.constants import WHISPER_DEVICE, WHISPER_FILLERS, WHISPER_MODEL
+from mochi.constants import (
+    WHISPER_BEAM,
+    WHISPER_DEVICE,
+    WHISPER_FILLERS,
+    WHISPER_MODEL,
+    WHISPER_PROMPT,
+)
 from mochi.voice.audio import Recorder
 
 
@@ -21,7 +27,12 @@ class WhisperTranscriber:
         if audio is None:
             return ""
         segments, _ = self.model.transcribe(
-            audio, beam_size=1, language="en", vad_filter=True
+            audio,
+            beam_size=WHISPER_BEAM,
+            language="en",
+            vad_filter=True,
+            condition_on_previous_text=False,
+            initial_prompt=WHISPER_PROMPT,
         )
         text = " ".join(seg.text.strip() for seg in segments).strip()
         return "" if is_noise(text) else text
