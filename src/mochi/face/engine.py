@@ -13,12 +13,17 @@ from mochi.constants import (
     BEZEL,
     BLINK_INTERVAL,
     BLINK_SPEED,
+    BLUSH_ALPHA,
     BLUSH_COLOR,
     BLUSH_EMOTIONS,
     BOUNCE_AMP,
     BOUNCE_FREQ,
     BREATH_AMP,
     BREATH_PERIOD,
+    BROW_ANGLE,
+    BROW_LENGTH,
+    BROW_LIFT,
+    BROW_THICKNESS,
     CARD_LINE_H,
     CARD_MAX_LINES,
     CARD_PANEL_TOP,
@@ -46,7 +51,10 @@ from mochi.constants import (
     MOUTH_VISIBLE_MIN,
     NUMERIC_FIELDS,
     PARADE_SECONDS,
+    SHAKE_AMP,
+    SHAKE_FREQ,
     SIZE,
+    SPARKLE_POINTS,
     SQUINT_FACTOR,
     STRETCH_CROSS,
     STRETCH_GAIN,
@@ -54,6 +62,10 @@ from mochi.constants import (
     TALK_AMP,
     TALK_BASE,
     TALK_FREQ,
+    TEAR_COLOR,
+    TEAR_FALL,
+    TEAR_PERIOD,
+    TEAR_RADIUS,
     TERMINAL_BG,
     TERMINAL_FG,
     WANDER_INTERVAL,
@@ -63,6 +75,36 @@ from mochi.constants import (
 
 def ease(current: float, target: float, rate: float, dt: float) -> float:
     return current + (target - current) * (1.0 - math.exp(-rate * dt))
+
+
+def heart_points(cx: float, cy: float, w: float, h: float) -> list[tuple[float, float]]:
+    pts = []
+    for i in range(28):
+        t = math.tau * i / 28
+        x = 16 * math.sin(t) ** 3
+        y = 13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t)
+        pts.append((cx + x * w / 34, cy - y * h / 30))
+    return pts
+
+
+def spiral_points(cx: float, cy: float, radius: float, turns: float = 2.4) -> list[tuple]:
+    steps = 46
+    return [
+        (
+            cx + radius * (i / steps) * math.cos(math.tau * turns * i / steps),
+            cy + radius * (i / steps) * math.sin(math.tau * turns * i / steps),
+        )
+        for i in range(steps + 1)
+    ]
+
+
+def star_points(cx: float, cy: float, size: float) -> list[tuple[float, float]]:
+    pts = []
+    for i in range(8):
+        a = math.tau * i / 8
+        r = size if i % 2 == 0 else size * 0.34
+        pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    return pts
 
 
 class MochiFace:
@@ -204,32 +246,39 @@ class MochiFace:
 
         gx = self.gaze.x * GAZE_RANGE[0]
         gy = self.gaze.y * GAZE_RANGE[1] + bounce_y
+        if s["shake"] > 0.02:
+            gx += math.sin(self.t * SHAKE_FREQ) * SHAKE_AMP * s["shake"]
 
+        style = EMOTIONS[self.emotion].style
         for side in (-1, 1):
             w = s["w"] * stretch_x * breathe * scale
             h = s["h"] * stretch_y * breathe * max(0.05, self.blink) * scale
             if side == 1:
                 h *= 1.0 - SQUINT_FACTOR * s["squint"]
-            r = min(s["r"] * scale, w / 2, h / 2)
-            surf = pg.Surface((int(w) + 4, int(h) + 4), pg.SRCALPHA)
-            pg.draw.rect(surf, color, (2, 2, int(w), int(h)), border_radius=int(r))
-            if s["crescent"] > 0.02:
-                cover_y = 2 + h * (1.08 - 0.78 * s["crescent"])
-                cover = (0, cover_y, int(w) + 4, int(h) + 4)
-                pg.draw.rect(surf, BACKGROUND, cover, border_radius=int(r))
-            if abs(s["tilt"]) > 0.5:
-                surf = pg.transform.rotate(surf, -side * s["tilt"])
+                h *= 1.0 - 0.88 * s["wink"]
             center = (cx + side * EYE_GAP * scale + gx * scale, eye_cy + gy * scale)
-            screen.blit(surf, surf.get_rect(center=center))
+            if style == "heart" and self.blink > 0.5:
+                pg.draw.polygon(screen, color, heart_points(*center, w, h))
+            elif style == "swirl" and self.blink > 0.5:
+                pg.draw.lines(screen, color, False, spiral_points(*center, w / 2), 7)
+            else:
+                self.draw_eye(screen, center, w, h, s, side, color, scale)
+            if s["brow"] > 0.02:
+                lift = 1.0 if side == -1 else 1.0 - s["brow_asym"] * 1.7
+                self.draw_brow(screen, center, h, s["brow"], side, lift, color, scale)
+
+        if s["sparkle"] > 0.02:
+            self.draw_sparkles(screen, cx, eye_cy + gy * scale, color, s["sparkle"], scale)
+        if s["tear"] > 0.02:
+            self.draw_tear(screen, cx - EYE_GAP * scale + gx * scale, eye_cy, s["tear"], scale)
 
         if card:
             self.draw_code_panel(screen, color)
             return
 
         if self.emotion in BLUSH_EMOTIONS:
-            blush = pg.Surface((60, 26), pg.SRCALPHA)
-            alpha = int(110 * max(s["crescent"], 0.35))
-            pg.draw.ellipse(blush, (*BLUSH_COLOR, alpha), (0, 0, 60, 26))
+            blush = pg.Surface((74, 32), pg.SRCALPHA)
+            pg.draw.ellipse(blush, (*BLUSH_COLOR, BLUSH_ALPHA), (0, 0, 74, 32))
             for side in (-1, 1):
                 pos = (cx + side * (EYE_GAP + 45), cy + 40 + gy)
                 screen.blit(blush, blush.get_rect(center=pos))
@@ -245,6 +294,42 @@ class MochiFace:
         if self.speaking:
             mouth_val = TALK_BASE + TALK_AMP * math.sin(self.t * TALK_FREQ)
         self.draw_mouth(screen, cx, cy + MOUTH_OFFSET_Y + gy * 0.4, mouth_val, color)
+
+    def draw_eye(self, screen, center, w, h, s, side, color, scale) -> None:
+        r = min(s["r"] * scale, w / 2, h / 2)
+        surf = pg.Surface((int(w) + 4, int(h) + 4), pg.SRCALPHA)
+        pg.draw.rect(surf, color, (2, 2, int(w), int(h)), border_radius=int(r))
+        if s["crescent"] > 0.02:
+            cover_y = 2 + h * (1.08 - 0.78 * s["crescent"])
+            cover = (0, cover_y, int(w) + 4, int(h) + 4)
+            pg.draw.rect(surf, BACKGROUND, cover, border_radius=int(r))
+        if abs(s["tilt"]) > 0.5:
+            surf = pg.transform.rotate(surf, -side * s["tilt"])
+        screen.blit(surf, surf.get_rect(center=center))
+
+    def draw_brow(self, screen, center, h, weight, side, lift, color, scale) -> None:
+        length = BROW_LENGTH * scale
+        thick = int(BROW_THICKNESS * scale * weight)
+        bar = pg.Surface((int(length), max(3, thick)), pg.SRCALPHA)
+        pg.draw.rect(bar, color, bar.get_rect(), border_radius=thick // 2)
+        bar = pg.transform.rotate(bar, side * BROW_ANGLE * weight * lift)
+        y = center[1] - h / 2 - BROW_LIFT * scale * (1.0 + 0.35 * max(0.0, lift))
+        screen.blit(bar, bar.get_rect(center=(center[0], y)))
+
+    def draw_sparkles(self, screen, cx, cy, color, weight, scale) -> None:
+        for i, (ox, oy, size) in enumerate(SPARKLE_POINTS):
+            pulse = 0.55 + 0.45 * math.sin(self.t * 5.0 + i * 2.1)
+            pts = star_points(
+                cx + ox * EYE_GAP * scale, cy + oy * EYE_GAP * scale, size * scale * pulse * weight
+            )
+            pg.draw.polygon(screen, color, pts)
+
+    def draw_tear(self, screen, x, eye_cy, weight, scale) -> None:
+        phase = (self.t % TEAR_PERIOD) / TEAR_PERIOD
+        y = eye_cy + 60 * scale + phase * TEAR_FALL * scale
+        radius = int(TEAR_RADIUS * scale * weight * (1.0 - phase * 0.35))
+        if radius > 1:
+            pg.draw.circle(screen, TEAR_COLOR, (int(x), int(y)), radius)
 
     def draw_code_panel(self, screen: pg.Surface, color: tuple) -> None:
         top = int(SIZE * CARD_PANEL_TOP)
