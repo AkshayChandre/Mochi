@@ -61,10 +61,11 @@ mochi-vision list               # enrolled people
 
 ### Hearing you accurately
 
-`WHISPER_MODEL` in `constants.py` drives accent accuracy: `small.en`
-(default) handles Indian, British, and other accents far better than
-`base.en`; `medium.en` is better still if you have the patience or a
-GPU. The mic auto-calibrates to room noise on every listen, so no
+`WHISPER_MODEL` in `constants.py` drives accent accuracy: `base.en`
+(default) is fastest; switch to `small.en` if Indian, British, or other
+accents get misheard, `medium.en` if you have a GPU. The beam search,
+context prompt, and noise handling apply to every model. The mic
+auto-calibrates to room noise on every listen, so no
 threshold tweaking is normally needed; `SILENCE_RMS` is the floor and
 `NOISE_MULT` how far above the room it must be.
 
