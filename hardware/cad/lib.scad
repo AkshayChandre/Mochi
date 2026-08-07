@@ -1,4 +1,4 @@
-// shared modules — include after params.scad
+// shared modules - include after params.scad
 
 module rrect(w, h, r) {
     offset(r) offset(-r) square([w, h], center = true);

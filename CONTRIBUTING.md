@@ -2,7 +2,7 @@
 
 ## Environment
 
-Python 3.10+ in a local virtual environment — always `.venv`, never global:
+Python 3.10+ in a local virtual environment - always `.venv`, never global:
 
 ```powershell
 py -m venv .venv
@@ -12,7 +12,7 @@ pip install -e .[dev]
 
 ## Branch model
 
-`master` is **protected**. No direct commits — every change lands via a
+`master` is **protected**. No direct commits - every change lands via a
 pull request with green tests. Squash-merge only, so history on master is
 one clean commit per change.
 

@@ -301,7 +301,7 @@ def main() -> None:
 
         face.update(dt, mouse)
         face.draw(screen)
-        pg.display.set_caption(f"Mochi — {face.emotion}  [1-7 | M mouse | A auto | P parade]")
+        pg.display.set_caption(f"Mochi - {face.emotion}  [1-7 | M mouse | A auto | P parade]")
         pg.display.flip()
 
         frame += 1

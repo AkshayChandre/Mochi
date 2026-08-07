@@ -1,9 +1,9 @@
-# Mochi Shell v1 — Printable CAD
+# Mochi Shell v1 - Printable CAD
 
 NOVA-style desk companion shell. Parametric OpenSCAD: every real-part
 dimension is a variable in `params.scad`.
 
-## CRITICAL — before final printing
+## CRITICAL - before final printing
 
 Values marked `MEASURE` in `params.scad` are **placeholders**. When the real
 parts arrive: measure with calipers, update `params.scad`, re-export every
@@ -30,16 +30,16 @@ foreach ($p in "head_front","head_back","ear","servo_cradle","neck_post",
 |------|-----|----------|-------|
 | head_front | 1 | PLA/PETG dark | flat side down, no supports |
 | head_back | 1 | PLA/PETG white | opening down, supports for ear sockets |
-| ear | 2 | **TPU** | rigid PLA snaps — TPU survives desk life |
+| ear | 2 | **TPU** | rigid PLA snaps - TPU survives desk life |
 | servo_cradle | 1 | PETG | |
-| neck_post | 1 | PETG, 5 walls | strength part — print solid-ish |
+| neck_post | 1 | PETG, 5 walls | strength part - print solid-ish |
 | body_shell | 1 | PLA/PETG white | opening down, supports for windows |
 | base_plate | 1 | PETG | flat, no supports |
 | pod | 2 | PLA dark | flat face down |
 | arm | 2 | PLA white | supports; print one mirrored in slicer |
 | heart_inlay | 1 | translucent PETG | LED glows through it |
 
-0.2 mm layers, 3 walls, 15–20% infill unless noted.
+0.2 mm layers, 3 walls, 15-20% infill unless noted.
 
 ## Fasteners (order with the electronics)
 

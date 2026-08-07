@@ -7,5 +7,5 @@ brain:
 #   host: 127.0.0.1
 #   port: 6379
 
-# Secrets (API keys, passwords) never go here — this file is committed.
+# Secrets (API keys, passwords) never go here - this file is committed.
 # Put them in .env (gitignored) and read via environment variables.

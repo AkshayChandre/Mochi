@@ -37,16 +37,21 @@ class RobotSounds:
         self.sd = sd
         self.prev = State.IDLE
         self.thinking = False
+        self.speaking = False
 
     def play(self, wave: np.ndarray) -> None:
+        if self.speaking:
+            return
         self.sd.play(wave, SOUND_SAMPLE_RATE)
 
     def think_loop(self) -> None:
         while self.thinking:
-            self.play(THINK_BLIP)
             time.sleep(THINK_BLIP_INTERVAL)
+            if self.thinking and not self.speaking:
+                self.play(THINK_BLIP)
 
     def on_state(self, state: State) -> None:
+        self.speaking = state == State.SPEAKING
         if state == State.THINKING and not self.thinking:
             self.thinking = True
             threading.Thread(target=self.think_loop, daemon=True).start()
