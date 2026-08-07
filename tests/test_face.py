@@ -34,7 +34,7 @@ def test_emotion_converges_and_renders(screen, name):
 
 def test_unknown_emotion_rejected():
     with pytest.raises(ValueError):
-        MochiFace().set_emotion("angry")
+        MochiFace().set_emotion("nonsense")
 
 def test_blink_cycle_completes():
     random.seed(0)  # deterministic double-blink rolls
@@ -59,6 +59,29 @@ def test_parade_cycles_all_emotions_then_neutral(screen):
     for _ in range(1200):
         face.update(1 / 60)
     assert face.parade == []
+    assert face.emotion == "neutral"
+
+
+def test_idle_sleeps_then_wakes(screen):
+    from mochi.constants import IDLE_SLEEP_SECONDS
+
+    face = MochiFace()
+    face.t = IDLE_SLEEP_SECONDS + 1
+    face.update(1 / 60)
+    assert face.emotion == "sleeping"
+    face.set_emotion("happy")
+    face.update(1 / 60)
+    assert face.emotion == "happy"
+
+
+def test_no_idle_sleep_while_showing_a_card(screen):
+    from mochi.constants import IDLE_SLEEP_SECONDS
+
+    face = MochiFace()
+    face.show_card("print(1)")
+    face.t = IDLE_SLEEP_SECONDS + 1
+    face.card_until = face.t + 10
+    face.update(1 / 60)
     assert face.emotion == "neutral"
 
 

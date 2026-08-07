@@ -32,6 +32,12 @@ EMOTIONS: dict[str, Emotion] = {
     "thinking": Emotion(squint=0.55, gaze_lock=(-0.6, -0.55)),
     "surprised": Emotion(w=186, h=198, r=96, mouth=0.15),
     "excited": Emotion(h=150, crescent=0.7, mouth=1.0, bounce=1.0),
+    "angry": Emotion(w=160, h=120, r=28, tilt=-18, mouth=-0.7),
+    "love": Emotion(w=170, h=170, r=85, crescent=0.5, mouth=1.0, bounce=0.35),
+    "curious": Emotion(w=158, h=186, squint=0.3, gaze_lock=(0.5, -0.45)),
+    "confused": Emotion(h=168, squint=0.45, tilt=7, mouth=-0.3, gaze_lock=(-0.45, 0.2)),
+    "laughing": Emotion(h=150, crescent=0.85, mouth=1.0, bounce=0.7),
+    "shy": Emotion(w=132, h=120, crescent=0.4, mouth=0.5, gaze_lock=(-0.35, 0.5)),
     "sleeping": Emotion(h=16, r=8, dim=0.28, gaze_lock=(0.0, 0.0)),
 }
 EMOTION_KEYS = list(EMOTIONS)
@@ -119,7 +125,8 @@ SYSTEM_PROMPT = (
     "guessing. Never invent facts. "
     "Always speak English only. "
     "Start every reply with exactly one emotion tag from: "
-    "[happy] [excited] [sad] [surprised] [thinking] [neutral]. "
+    "[happy] [excited] [sad] [angry] [love] [curious] [confused] [laughing] "
+    "[shy] [surprised] [thinking] [neutral]. "
     "The tag is silent metadata for your face: never say it aloud and never "
     "announce your emotional state in words. "
     "Use a ``` fenced block ONLY for actual source code, which is shown on "
@@ -191,11 +198,19 @@ EMOTION_COLORS = {
     "sad": (95, 130, 255),
     "thinking": (185, 130, 255),
     "surprised": (255, 225, 90),
+    "angry": (255, 90, 80),
+    "love": (255, 120, 190),
+    "curious": (120, 220, 255),
+    "confused": (200, 190, 120),
+    "laughing": (120, 255, 160),
+    "shy": (255, 160, 190),
     "sleeping": (70, 95, 130),
 }
+BLUSH_EMOTIONS = frozenset({"happy", "excited", "love", "shy", "laughing"})
+IDLE_SLEEP_SECONDS = 90.0
 COLOR_EASE_RATE = 6.0
 BLUSH_COLOR = (255, 120, 150)
-PARADE_SECONDS = 1.4
+PARADE_SECONDS = 1.0
 CARD_SECONDS = 20.0
 CARD_MAX_LINES = 200
 CARD_WRAP = 52

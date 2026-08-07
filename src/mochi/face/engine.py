@@ -14,6 +14,7 @@ from mochi.constants import (
     BLINK_INTERVAL,
     BLINK_SPEED,
     BLUSH_COLOR,
+    BLUSH_EMOTIONS,
     BOUNCE_AMP,
     BOUNCE_FREQ,
     BREATH_AMP,
@@ -37,6 +38,7 @@ from mochi.constants import (
     FPS,
     GAZE_LERP_RATE,
     GAZE_RANGE,
+    IDLE_SLEEP_SECONDS,
     MOUTH_DEPTH,
     MOUTH_HALF_WIDTH,
     MOUTH_OFFSET_Y,
@@ -76,6 +78,7 @@ class MochiFace:
         self.blink_phase = "idle"
         self.next_blink = random.uniform(*BLINK_INTERVAL)
         self.speaking = False
+        self.idle_since = 0.0
         self.parade: list[str] = []
         self.parade_t = 0.0
         self.card_lines: list[str] = []
@@ -89,6 +92,8 @@ class MochiFace:
         if name not in EMOTIONS:
             raise ValueError(f"unknown emotion {name!r}")
         self.emotion = name
+        if name != "sleeping":
+            self.idle_since = self.t
 
     def set_speaking(self, speaking: bool) -> None:
         self.speaking = speaking
@@ -125,6 +130,13 @@ class MochiFace:
                 panel_h = SIZE - int(SIZE * CARD_PANEL_TOP) - 40
                 max_scroll = max(0.0, len(self.card_lines) * CARD_LINE_H - panel_h)
                 self.card_scroll = min(self.card_scroll + CARD_SCROLL_SPEED * dt, max_scroll)
+        if (
+            self.emotion == "neutral"
+            and not self.parade
+            and not self.card_lines
+            and self.t - self.idle_since > IDLE_SLEEP_SECONDS
+        ):
+            self.emotion = "sleeping"
         if self.parade:
             self.parade_t -= dt
             if self.parade_t <= 0:
@@ -214,9 +226,10 @@ class MochiFace:
             self.draw_code_panel(screen, color)
             return
 
-        if self.emotion in ("happy", "excited"):
+        if self.emotion in BLUSH_EMOTIONS:
             blush = pg.Surface((60, 26), pg.SRCALPHA)
-            pg.draw.ellipse(blush, (*BLUSH_COLOR, int(110 * s["crescent"])), (0, 0, 60, 26))
+            alpha = int(110 * max(s["crescent"], 0.35))
+            pg.draw.ellipse(blush, (*BLUSH_COLOR, alpha), (0, 0, 60, 26))
             for side in (-1, 1):
                 pos = (cx + side * (EYE_GAP + 45), cy + 40 + gy)
                 screen.blit(blush, blush.get_rect(center=pos))
