@@ -43,6 +43,7 @@ from mochi.constants import (
     FPS,
     GAZE_LERP_RATE,
     GAZE_RANGE,
+    GLINT_COLOR,
     IDLE_SLEEP_SECONDS,
     MOUTH_DEPTH,
     MOUTH_HALF_WIDTH,
@@ -51,6 +52,8 @@ from mochi.constants import (
     MOUTH_VISIBLE_MIN,
     NUMERIC_FIELDS,
     PARADE_SECONDS,
+    SHADES_BRIDGE,
+    SHADES_TILT,
     SHAKE_AMP,
     SHAKE_FREQ,
     SIZE,
@@ -250,6 +253,7 @@ class MochiFace:
             gx += math.sin(self.t * SHAKE_FREQ) * SHAKE_AMP * s["shake"]
 
         style = EMOTIONS[self.emotion].style
+        centers: list[tuple[float, float]] = []
         for side in (-1, 1):
             w = s["w"] * stretch_x * breathe * scale
             h = s["h"] * stretch_y * breathe * max(0.05, self.blink) * scale
@@ -264,12 +268,19 @@ class MochiFace:
             elif style == "star" and self.blink > 0.5:
                 pg.draw.polygon(screen, color, star_points(*center, w / 2, spikes=5))
             elif style == "x":
-                self.draw_x_eye(screen, center, w, color)
+                self.draw_x_eye(screen, center, w, color, scale)
+            elif style == "shades":
+                self.draw_lens(screen, center, w, h, s, side, color, scale)
+                centers.append(center)
             else:
                 self.draw_eye(screen, center, w, h, s, side, color, scale)
             if s["brow"] > 0.02:
                 lift = 1.0 if side == -1 else 1.0 - s["brow_asym"] * 1.7
                 self.draw_brow(screen, center, h, s["brow"], side, lift, color, scale)
+
+        if len(centers) == 2:
+            bridge = max(3, int(SHADES_BRIDGE * scale))
+            pg.draw.line(screen, color, centers[0], centers[1], bridge)
 
         if s["sparkle"] > 0.02:
             self.draw_sparkles(screen, cx, eye_cy + gy * scale, color, s["sparkle"], scale)
@@ -305,11 +316,27 @@ class MochiFace:
                 mouth_val = TALK_BASE + TALK_AMP * math.sin(self.t * TALK_FREQ)
             self.draw_mouth(screen, cx, mouth_y, mouth_val, color)
 
-    def draw_x_eye(self, screen, center, w, color) -> None:
+    def draw_x_eye(self, screen, center, w, color, scale=1.0) -> None:
         arm = w / 2
         cx, cy = center
-        pg.draw.line(screen, color, (cx - arm, cy - arm), (cx + arm, cy + arm), 16)
-        pg.draw.line(screen, color, (cx - arm, cy + arm), (cx + arm, cy - arm), 16)
+        thick = max(4, int(16 * scale))
+        pg.draw.line(screen, color, (cx - arm, cy - arm), (cx + arm, cy + arm), thick)
+        pg.draw.line(screen, color, (cx - arm, cy + arm), (cx + arm, cy - arm), thick)
+
+    def draw_lens(self, screen, center, w, h, s, side, color, scale) -> None:
+        surf = pg.Surface((int(w) + 4, int(h) + 4), pg.SRCALPHA)
+        r = min(s["r"] * scale, w / 2, h / 2)
+        pg.draw.rect(surf, color, (2, 2, int(w), int(h)), border_radius=int(r))
+        glint_x = int(w * 0.24)
+        pg.draw.line(
+            surf,
+            GLINT_COLOR,
+            (glint_x, int(h * 0.78)),
+            (int(w * 0.46), int(h * 0.18)),
+            max(2, int(7 * scale)),
+        )
+        surf = pg.transform.rotate(surf, side * SHADES_TILT)
+        screen.blit(surf, surf.get_rect(center=center))
 
     def draw_eye(self, screen, center, w, h, s, side, color, scale) -> None:
         r = min(s["r"] * scale, w / 2, h / 2)

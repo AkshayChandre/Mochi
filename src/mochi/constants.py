@@ -54,6 +54,7 @@ EMOTIONS: dict[str, Emotion] = {
     "starstruck": Emotion(w=176, h=176, style="star", sparkle=1.0, mouth=1.0, bounce=0.4),
     "shocked": Emotion(w=196, h=206, r=100, mouth_open=0.9, brow=0.5),
     "proud": Emotion(h=150, crescent=0.8, mouth=0.9, sparkle=0.5, brow=0.3),
+    "cool": Emotion(w=186, h=104, r=16, style="shades", mouth=0.55, brow=0.0),
     "error": Emotion(w=150, h=150, style="x", mouth=-0.5, shake=0.5, dim=0.85),
     "sleeping": Emotion(h=16, r=8, dim=0.28, gaze_lock=(0.0, 0.0)),
 }
@@ -144,7 +145,7 @@ SYSTEM_PROMPT = (
     "Start every reply with exactly one emotion tag from: "
     "[happy] [excited] [sad] [angry] [love] [curious] [confused] [laughing] "
     "[shy] [smug] [bored] [suspicious] [sleepy] [starstruck] [shocked] "
-    "[proud] [surprised] [thinking] [neutral]. "
+    "[proud] [cool] [surprised] [thinking] [neutral]. "
     "The tag is silent metadata for your face: never say it aloud and never "
     "announce your emotional state in words. "
     "Use a ``` fenced block ONLY for actual source code, which is shown on "
@@ -229,6 +230,7 @@ EMOTION_COLORS = {
     "starstruck": (255, 220, 100),
     "shocked": (255, 245, 150),
     "proud": (255, 200, 90),
+    "cool": (90, 240, 235),
     "error": (255, 70, 70),
     "sleeping": (70, 95, 130),
 }
@@ -238,6 +240,9 @@ BROW_LENGTH = 118
 BROW_LIFT = 34
 BROW_ANGLE = 22
 BLUSH_ALPHA = 175
+SHADES_TILT = 7
+SHADES_BRIDGE = 12
+GLINT_COLOR = (255, 255, 255)
 TEAR_COLOR = (120, 190, 255)
 TEAR_RADIUS = 15
 TEAR_FALL = 120
