@@ -4,7 +4,7 @@ from collections.abc import Callable, Iterator
 from enum import Enum
 from typing import Protocol
 
-from mochi.constants import MEMORY_ASK, MEMORY_SAVED, YES_WORDS
+from mochi.constants import MEMORY_ASK, MEMORY_SAVED, NO_REPLY, YES_WORDS
 
 
 class State(str, Enum):
@@ -74,6 +74,7 @@ class VoicePipeline:
             text = self.stt.listen().strip()
             if not text:
                 break
+            print(f"heard: {text}")
             if self.intercept and (reply := self.intercept(text)) is not None:
                 self.set_state(State.SPEAKING)
                 self.tts.say(reply)
@@ -89,6 +90,11 @@ class VoicePipeline:
                     spoke = True
                 self.tts.say(sentence)
                 parts.append(sentence)
+            if not spoke:
+                self.set_state(State.SPEAKING)
+                fallback = "It's on my screen." if self.brain.last_blocks else NO_REPLY
+                self.tts.say(fallback)
+                parts.append(fallback)
             self.tts.flush()
             if self.on_display:
                 for block in self.brain.last_blocks:

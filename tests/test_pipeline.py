@@ -140,6 +140,31 @@ def test_memory_declined_not_saved():
     assert mem.saved == []
 
 
+def test_silent_reply_gets_spoken_fallback():
+    class Mute(Brain):
+        def chat_stream(self, text):
+            self.asked.append(text)
+            return iter(())
+
+    brain, tts = Mute(), Tts()
+    pipe = VoicePipeline(Wake(), Stt("recipe please"), brain, tts)
+    pipe.converse()
+    assert tts.spoken and "screen" not in tts.spoken[0]
+
+
+def test_silent_reply_with_code_points_at_screen():
+    class Fenced(Brain):
+        def chat_stream(self, text):
+            self.asked.append(text)
+            self.last_blocks = ["print(1)"]
+            return iter(())
+
+    brain, tts = Fenced(), Tts()
+    pipe = VoicePipeline(Wake(), Stt("write code"), brain, tts)
+    pipe.converse()
+    assert "screen" in tts.spoken[0]
+
+
 def test_no_memory_ask_when_nothing_was_said():
     brain, tts = Brain(), Tts()
     mem = Mem("stale fact")

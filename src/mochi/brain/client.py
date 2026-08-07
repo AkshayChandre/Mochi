@@ -124,7 +124,7 @@ class BrainClient:
         self.history.append({"role": "assistant", "content": raw})
         self.trim()
 
-    def ask_once(self, system: str, user: str) -> str:
+    def ask_once(self, system: str, user: str, timeout: int = BRAIN_TIMEOUT) -> str:
         payload = {
             "model": self.model,
             "messages": [
@@ -136,7 +136,7 @@ class BrainClient:
             "options": BRAIN_OPTIONS,
         }
         req = Request(self.url, json.dumps(payload).encode(), {"Content-Type": "application/json"})
-        with urlopen(req, timeout=BRAIN_TIMEOUT) as resp:
+        with urlopen(req, timeout=timeout) as resp:
             return json.load(resp)["message"]["content"].strip()
 
     def consume_tag(self, buffer: str) -> tuple[str, bool]:

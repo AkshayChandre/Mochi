@@ -5,7 +5,7 @@ import threading
 import pygame as pg
 
 from mochi.brain.client import BrainClient, BrainOfflineError
-from mochi.constants import FPS, GREETING, SIZE, STATE_EMOTION, STRANGER_GREETING
+from mochi.constants import FPS, GREETING, MEMORY_SAVED, SIZE, STATE_EMOTION, STRANGER_GREETING
 from mochi.face.engine import MochiFace
 from mochi.voice.pipeline import State, VoicePipeline
 
@@ -64,12 +64,15 @@ def make_apply(face: MochiFace, brain: BrainClient, sounds=None):
     return apply
 
 
-def make_intercept(face: MochiFace):
+def make_intercept(face: MochiFace, memory):
     def intercept(text: str) -> str | None:
         low = text.lower()
         if "expression" in low or "emotion" in low:
             face.play_parade()
             return "Watch my face!"
+        if fact := memory.explicit(text):
+            memory.save(fact)
+            return MEMORY_SAVED
         return None
 
     return intercept
@@ -110,7 +113,7 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
         brain,
         tts,
         make_apply(face, brain, sounds),
-        make_intercept(face),
+        make_intercept(face, memory),
         face.show_card,
         memory,
     )

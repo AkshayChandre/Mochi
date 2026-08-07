@@ -11,7 +11,7 @@ class FakeBrain:
             {"role": "assistant", "content": "nice"},
         ]
 
-    def ask_once(self, system, user):
+    def ask_once(self, system, user, timeout=None):
         return self.reply
 
 
@@ -38,9 +38,16 @@ def test_extract_rejects_none_and_duplicates(tmp_path):
     assert Memory(FakeBrain("Ravi loves tea"), store).extract() is None
 
 
+def test_explicit_remember_captures_fact(tmp_path):
+    m = Memory(FakeBrain(""), MemoryStore(str(tmp_path / "m.db")))
+    assert m.explicit("Mochi remember my DOB is 5th August") == "DOB is 5th August"
+    assert m.explicit("remember that I love tea") == "I love tea"
+    assert m.explicit("what is the weather") is None
+
+
 def test_extract_survives_brain_errors(tmp_path):
     class Broken(FakeBrain):
-        def ask_once(self, system, user):
+        def ask_once(self, system, user, timeout=None):
             raise OSError("offline")
 
     assert Memory(Broken(""), MemoryStore(str(tmp_path / "m.db"))).extract() is None

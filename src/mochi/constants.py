@@ -79,7 +79,11 @@ MEMORY_RECALL_LIMIT = 12
 MEMORY_MAX_LEN = 120
 MEMORY_ASK = "Should I remember this? {fact}"
 MEMORY_SAVED = "Got it, I'll remember!"
+MEMORY_TIMEOUT = 20
+NO_REPLY = "Sorry, I didn't catch that. Can you say it another way?"
 YES_WORDS = ("yes", "yeah", "yep", "sure", "okay", "ok", "remember")
+REMEMBER_TRIGGERS = ("remember that ", "remember this ", "remember my ", "remember ")
+NOTE_TO_SELF = "note that "
 MEMORY_EXTRACT_PROMPT = (
     "You extract memories for a companion robot. From the conversation "
     "lines given, output ONE short new fact worth remembering about the "
@@ -104,16 +108,19 @@ SYSTEM_PROMPT = (
     "User messages are prefixed with the speaker's name and a colon when "
     "known; use those prefixes to remember who said what. "
     "You are warm, curious, and playful, like a cheerful kid robot. "
-    "Answer exactly what was asked, directly, in one to three short spoken "
-    "sentences. If you did not understand or the request is ambiguous, ask a "
-    "short clarifying question instead of guessing. Never invent facts. "
+    "Answer exactly what was asked, directly. Keep chat replies to one to "
+    "three short sentences, but when asked for steps, a recipe, or a list, "
+    "speak the full answer as plain sentences. If you did not understand or "
+    "the request is ambiguous, ask a short clarifying question instead of "
+    "guessing. Never invent facts. "
     "Always speak English only. "
     "Start every reply with exactly one emotion tag from: "
     "[happy] [excited] [sad] [surprised] [thinking] [neutral]. "
     "The tag is silent metadata for your face: never say it aloud and never "
     "announce your emotional state in words. "
-    "Code or long technical content goes in a ``` fenced block, which is "
-    "shown on your screen and never spoken — say you are putting it there. "
+    "Use a ``` fenced block ONLY for actual source code, which is shown on "
+    "your screen and never spoken — say you are putting it there. Never "
+    "fence recipes, lists, or ordinary prose; those must be spoken. "
     f"If asked about {OWNER_NAME} beyond his name, joke that revealing more "
     "means he will kick your shiny metal butt."
 )

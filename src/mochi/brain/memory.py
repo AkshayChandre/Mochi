@@ -2,7 +2,15 @@ from __future__ import annotations
 
 import sqlite3
 
-from mochi.constants import DB_PATH, MEMORY_EXTRACT_PROMPT, MEMORY_MAX_LEN, MEMORY_RECALL_LIMIT
+from mochi.constants import (
+    DB_PATH,
+    MEMORY_EXTRACT_PROMPT,
+    MEMORY_MAX_LEN,
+    MEMORY_RECALL_LIMIT,
+    MEMORY_TIMEOUT,
+    NOTE_TO_SELF,
+    REMEMBER_TRIGGERS,
+)
 
 
 class MemoryStore:
@@ -31,12 +39,20 @@ class Memory:
         self.brain = brain
         self.store = store
 
+    def explicit(self, text: str) -> str | None:
+        low = text.lower().strip()
+        for trigger in (*REMEMBER_TRIGGERS, NOTE_TO_SELF):
+            if (i := low.find(trigger)) != -1:
+                fact = text[i + len(trigger) :].strip(" .!?")
+                return fact or None
+        return None
+
     def extract(self) -> str | None:
         turns = [m["content"] for m in self.brain.history[1:] if m["role"] == "user"][-6:]
         if not turns:
             return None
         try:
-            fact = self.brain.ask_once(MEMORY_EXTRACT_PROMPT, "\n".join(turns))
+            fact = self.brain.ask_once(MEMORY_EXTRACT_PROMPT, "\n".join(turns), MEMORY_TIMEOUT)
         except Exception:
             return None
         fact = fact.strip().strip('"')
