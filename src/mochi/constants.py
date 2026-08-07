@@ -162,7 +162,6 @@ WHISPER_FILLERS = frozenset(
         "hmm",
         "mm",
         "so",
-        "okay",
     }
 )
 

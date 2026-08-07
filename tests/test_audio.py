@@ -39,6 +39,13 @@ def test_whisper_noise_filter():
     assert not is_noise("what is the time")
 
 
+def test_yes_words_are_never_filtered_as_noise():
+    from mochi.constants import YES_WORDS
+    from mochi.voice.stt import is_noise
+
+    assert not any(is_noise(w) for w in YES_WORDS)
+
+
 def test_blips_muted_while_speaking():
     from mochi.voice.pipeline import State
 
