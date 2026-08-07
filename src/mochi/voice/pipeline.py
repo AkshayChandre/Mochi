@@ -9,6 +9,7 @@ from mochi.constants import (
     MEMORY_MIN_TURNS,
     MEMORY_SAVED,
     NO_REPLY,
+    SCREEN_REPLY,
     YES_WORDS,
 )
 
@@ -66,26 +67,25 @@ class VoicePipeline:
         if self.on_state:
             self.on_state(state)
 
+    def speak(self, text: str) -> str:
+        self.set_state(State.SPEAKING)
+        self.tts.say(text)
+        self.tts.flush()
+        return text
+
+    def hear(self) -> str:
+        self.set_state(State.LISTENING)
+        return self.stt.listen().strip()
+
     def converse(self) -> str:
-        greeting = self.wake.wait().strip()
         parts: list[str] = []
-        if greeting:
-            self.set_state(State.SPEAKING)
-            self.tts.say(greeting)
-            self.tts.flush()
-            parts.append(greeting)
+        if greeting := self.wake.wait().strip():
+            parts.append(self.speak(greeting))
         turns = 0
-        while True:
-            self.set_state(State.LISTENING)
-            text = self.stt.listen().strip()
-            if not text:
-                break
+        while text := self.hear():
             print(f"heard: {text}")
             if self.intercept and (reply := self.intercept(text)) is not None:
-                self.set_state(State.SPEAKING)
-                self.tts.say(reply)
-                self.tts.flush()
-                parts.append(reply)
+                parts.append(self.speak(reply))
                 continue
             self.set_state(State.THINKING)
             turns += 1
@@ -96,12 +96,10 @@ class VoicePipeline:
                     spoke = True
                 self.tts.say(sentence)
                 parts.append(sentence)
-            if not spoke:
-                self.set_state(State.SPEAKING)
-                fallback = "It's on my screen." if self.brain.last_blocks else NO_REPLY
-                self.tts.say(fallback)
-                parts.append(fallback)
-            self.tts.flush()
+            if spoke:
+                self.tts.flush()
+            else:
+                parts.append(self.speak(SCREEN_REPLY if self.brain.last_blocks else NO_REPLY))
             if self.on_display:
                 for block in self.brain.last_blocks:
                     self.on_display(block)
@@ -114,16 +112,10 @@ class VoicePipeline:
         fact = self.memory.extract()
         if not fact:
             return
-        self.set_state(State.SPEAKING)
-        self.tts.say(MEMORY_ASK.format(fact=fact))
-        self.tts.flush()
-        self.set_state(State.LISTENING)
-        answer = self.stt.listen().lower()
-        if any(word in answer for word in YES_WORDS):
+        self.speak(MEMORY_ASK.format(fact=fact))
+        if any(word in self.hear().lower() for word in YES_WORDS):
             self.memory.save(fact)
-            self.set_state(State.SPEAKING)
-            self.tts.say(MEMORY_SAVED)
-            self.tts.flush()
+            self.speak(MEMORY_SAVED)
 
     def run(self) -> None:
         while True:

@@ -28,3 +28,26 @@ def test_chirp_has_energy():
 
 def test_boot_sound_exists():
     assert len(sounds.BOOT_SOUND) > 0
+
+
+def test_whisper_noise_filter():
+    from mochi.voice.stt import is_noise
+
+    assert is_noise("Thank you.")
+    assert is_noise("  ...  ")
+    assert is_noise("you")
+    assert not is_noise("what is the time")
+
+
+def test_blips_muted_while_speaking():
+    from mochi.voice.pipeline import State
+
+    s = sounds.RobotSounds.__new__(sounds.RobotSounds)
+    played = []
+    s.sd = type("SD", (), {"play": lambda self, w, r: played.append(w)})()
+    s.prev, s.thinking, s.speaking = State.IDLE, False, False
+    s.on_state(State.SPEAKING)
+    s.play(sounds.THINK_BLIP)
+    assert played == []
+    s.on_state(State.LISTENING)
+    assert len(played) == 1

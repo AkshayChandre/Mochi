@@ -82,6 +82,7 @@ MEMORY_SAVED = "Got it, I'll remember!"
 MEMORY_TIMEOUT = 20
 MEMORY_MIN_TURNS = 2
 NO_REPLY = "Sorry, I didn't catch that. Can you say it another way?"
+SCREEN_REPLY = "It's on my screen."
 RETRY_SECONDS = 3
 QUESTION_STARTS = ("do ", "did ", "can ", "will ", "what", "who", "when", "where", "how", "why")
 YES_WORDS = ("yes", "yeah", "yep", "sure", "okay", "ok", "remember")
@@ -148,6 +149,22 @@ MAX_UTTERANCE_SECONDS = 20.0
 MIN_SPEECH_SECONDS = 0.3
 WHISPER_MODEL = "base.en"
 WHISPER_DEVICE = "cpu"
+WHISPER_FILLERS = frozenset(
+    {
+        "you",
+        "thank you",
+        "thanks",
+        "thanks for watching",
+        "thank you for watching",
+        "bye",
+        "uh",
+        "um",
+        "hmm",
+        "mm",
+        "so",
+        "okay",
+    }
+)
 
 VOICE_NAME = "en_US-amy-medium"
 VOICES_DIR = "voices"
