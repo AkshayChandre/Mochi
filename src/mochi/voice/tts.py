@@ -17,7 +17,7 @@ class KidRobotVoice:
         model = Path(VOICES_DIR) / f"{VOICE_NAME}.onnx"
         if not model.is_file():
             raise FileNotFoundError(
-                f"voice model missing: {model} — run: "
+                f"voice model missing: {model} - run: "
                 f"python -m piper.download_voices {VOICE_NAME} --data-dir {VOICES_DIR}"
             )
         self.voice = PiperVoice.load(str(model))

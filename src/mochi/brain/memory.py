@@ -9,6 +9,7 @@ from mochi.constants import (
     MEMORY_RECALL_LIMIT,
     MEMORY_TIMEOUT,
     NOTE_TO_SELF,
+    QUESTION_STARTS,
     REMEMBER_TRIGGERS,
 )
 
@@ -41,6 +42,8 @@ class Memory:
 
     def explicit(self, text: str) -> str | None:
         low = text.lower().strip()
+        if low.endswith("?") or low.startswith(QUESTION_STARTS):
+            return None
         for trigger in (*REMEMBER_TRIGGERS, NOTE_TO_SELF):
             if (i := low.find(trigger)) != -1:
                 fact = text[i + len(trigger) :].strip(" .!?")

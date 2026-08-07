@@ -40,7 +40,7 @@ def main() -> None:
     pipeline = VoicePipeline(
         EnterWake(), ConsoleIn(), BrainClient(), ConsoleOut(), show_state, None, show_block
     )
-    print("Mochi console — Ctrl+C to quit. Requires a running Ollama server (see config.yaml).")
+    print("Mochi console - Ctrl+C to quit. Requires a running Ollama server (see config.yaml).")
     print("After Mochi replies it keeps listening; press Enter alone to end the conversation.")
     try:
         pipeline.run()

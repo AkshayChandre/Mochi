@@ -1,11 +1,20 @@
 from __future__ import annotations
 
 import threading
+import time
 
 import pygame as pg
 
 from mochi.brain.client import BrainClient, BrainOfflineError
-from mochi.constants import FPS, GREETING, MEMORY_SAVED, SIZE, STATE_EMOTION, STRANGER_GREETING
+from mochi.constants import (
+    FPS,
+    GREETING,
+    MEMORY_SAVED,
+    RETRY_SECONDS,
+    SIZE,
+    STATE_EMOTION,
+    STRANGER_GREETING,
+)
 from mochi.face.engine import MochiFace
 from mochi.voice.pipeline import State, VoicePipeline
 
@@ -99,11 +108,11 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
             stt = VisionStt(stt, presence, brain)
             print("vision: face recognition active")
         except Exception as verr:
-            print(f"vision unavailable: {verr} — running without recognition")
+            print(f"vision unavailable: {verr} - running without recognition")
         sounds.play(BOOT_SOUND)
     except Exception as err:
         print(f"audio unavailable: {err}")
-        print("enable it with: pip install -e .[audio]  (see README) — using console mode")
+        print("enable it with: pip install -e .[audio]  (see README) - using console mode")
         from mochi.voice.console import ConsoleIn, ConsoleOut, EnterWake
 
         sounds, wake, stt, tts = None, EnterWake(), ConsoleIn(), ConsoleOut()
@@ -123,11 +132,17 @@ def start_voice(face: MochiFace) -> None:
     brain = BrainClient()
 
     def loop() -> None:
-        try:
-            build_pipeline(face, brain).run()
-        except BrainOfflineError as err:
-            print(f"error: {err}")
-            face.set_emotion("sad")
+        pipeline = build_pipeline(face, brain)
+        while True:
+            try:
+                pipeline.run()
+            except BrainOfflineError as err:
+                print(f"brain offline, retrying: {err}")
+                face.set_emotion("sad")
+                time.sleep(RETRY_SECONDS)
+            except Exception as err:
+                print(f"recovered from: {err!r}")
+                time.sleep(RETRY_SECONDS)
 
     threading.Thread(target=loop, daemon=True).start()
 
@@ -147,7 +162,7 @@ def main() -> None:
                 return
         face.update(dt)
         face.draw(screen)
-        pg.display.set_caption(f"Mochi — {face.emotion}")
+        pg.display.set_caption(f"Mochi - {face.emotion}")
         pg.display.flip()
 
 

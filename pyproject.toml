@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mochi"
 version = "0.1.0"
-description = "Mochi — open-source desktop AI companion robot"
+description = "Mochi - open-source desktop AI companion robot"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"

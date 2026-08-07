@@ -118,7 +118,7 @@ def main() -> None:
         db.add(name, mean / np.linalg.norm(mean))
         print(f"enrolled {name}")
         return
-    print("watching — Ctrl+C to quit; strangers get asked for a name")
+    print("watching - Ctrl+C to quit; strangers get asked for a name")
     strangers: list[np.ndarray] = []
     try:
         while True:

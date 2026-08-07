@@ -43,6 +43,8 @@ def test_explicit_remember_captures_fact(tmp_path):
     assert m.explicit("Mochi remember my DOB is 5th August") == "DOB is 5th August"
     assert m.explicit("remember that I love tea") == "I love tea"
     assert m.explicit("what is the weather") is None
+    assert m.explicit("do you remember my name?") is None
+    assert m.explicit("can you remember my dob") is None
 
 
 def test_extract_survives_brain_errors(tmp_path):

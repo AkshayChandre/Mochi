@@ -1,10 +1,10 @@
-# Mochi — Open-Source Desktop AI Companion
+# Mochi - Open-Source Desktop AI Companion
 
 A soft, blob-shaped robot that gives physical presence to a fully local,
 fully open-source AI. The robot body (Raspberry Pi) is the presence layer;
 your PC is the brain. Zero paid services, zero cloud dependency.
 
-## v0.1 — Face Engine (this repo, today)
+## v0.1 - Face Engine (this repo, today)
 
 Runs on your PC now; the same file runs on the Pi's 720x720 round display later.
 
@@ -23,7 +23,7 @@ mochi-vision watch        # face recognition (needs .[vision] extra, see below)
 ### Repo layout
 
 ```
-src/mochi/     the package — face/ now; voice/ brain/ body/ agent/ as they land
+src/mochi/     the package - face/ now; voice/ brain/ body/ agent/ as they land
 tests/         headless test suite (pytest)
 hardware/      BOM, wiring, CAD/STL files
 ```
@@ -34,12 +34,12 @@ Development standards: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 | Key | Action |
 |-----|--------|
-| 1–7 | neutral / happy / sad / thinking / surprised / excited / sleeping |
-| M   | mouse-follow gaze — Mochi's eyes track your cursor |
+| 1-7 | neutral / happy / sad / thinking / surprised / excited / sleeping |
+| M   | mouse-follow gaze - Mochi's eyes track your cursor |
 | A   | autopilot demo (cycles emotions) |
 | ESC | quit |
 
-Press **M** and move your mouse around — that's the presence effect the whole
+Press **M** and move your mouse around - that's the presence effect the whole
 project is built on.
 
 ### Enable audio (talking Mochi)
@@ -61,19 +61,19 @@ mochi-vision list               # enrolled people
 
 ### Memory
 
-After a conversation ends, Mochi may ask "Should I remember this?" —
+After a conversation ends, Mochi may ask "Should I remember this?" -
 say yes and the fact is stored per person in `mochi.db`, recalled in
 every future conversation, and survives restarts. Decline and nothing
 is saved; Mochi never remembers without permission.
 
 `watch` auto-enrolls: when an unknown face stays in frame for a few
-captures, it asks "new face! what's their name?" — type a name to save
+captures, it asks "new face! what's their name?" - type a name to save
 them, Enter to ignore. Embeddings live in `mochi.db` (SQLite, local
 only, gitignored). Tuning knobs in `constants.py`: `CAMERA_INDEX` if
 the wrong camera opens, `FACE_MATCH_THRESHOLD` if lighting causes
 misses or false matches.
 
-Mochi boots with a chirp and starts listening immediately — just talk.
+Mochi boots with a chirp and starts listening immediately - just talk.
 Silence ends a conversation; speaking starts a new one. If audio setup is
 missing, `mochi` falls back to console mode automatically.
 

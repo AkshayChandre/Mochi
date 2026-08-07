@@ -80,7 +80,10 @@ MEMORY_MAX_LEN = 120
 MEMORY_ASK = "Should I remember this? {fact}"
 MEMORY_SAVED = "Got it, I'll remember!"
 MEMORY_TIMEOUT = 20
+MEMORY_MIN_TURNS = 2
 NO_REPLY = "Sorry, I didn't catch that. Can you say it another way?"
+RETRY_SECONDS = 3
+QUESTION_STARTS = ("do ", "did ", "can ", "will ", "what", "who", "when", "where", "how", "why")
 YES_WORDS = ("yes", "yeah", "yep", "sure", "okay", "ok", "remember")
 REMEMBER_TRIGGERS = ("remember that ", "remember this ", "remember my ", "remember ")
 NOTE_TO_SELF = "note that "
@@ -119,7 +122,7 @@ SYSTEM_PROMPT = (
     "The tag is silent metadata for your face: never say it aloud and never "
     "announce your emotional state in words. "
     "Use a ``` fenced block ONLY for actual source code, which is shown on "
-    "your screen and never spoken — say you are putting it there. Never "
+    "your screen and never spoken - say you are putting it there. Never "
     "fence recipes, lists, or ordinary prose; those must be spoken. "
     f"If asked about {OWNER_NAME} beyond his name, joke that revealing more "
     "means he will kick your shiny metal butt."

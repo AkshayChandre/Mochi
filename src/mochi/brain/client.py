@@ -162,7 +162,7 @@ class BrainClient:
                 after = lead[len(emo) :].lstrip()
                 if not after:
                     return buffer, False
-                if after[0] in ":-–—.":
+                if after[0] in ":-.\u2013\u2014":
                     self.last_emotion = emo
                     return after[1:].lstrip(), True
                 return buffer, True

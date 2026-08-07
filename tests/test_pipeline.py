@@ -126,7 +126,7 @@ class Mem:
 def test_memory_saved_on_spoken_yes():
     brain, tts = Brain(), Tts()
     mem = Mem("Akshay likes tea")
-    pipe = VoicePipeline(Wake(), Stt("hi", "", "yes please"), brain, tts, memory=mem)
+    pipe = VoicePipeline(Wake(), Stt("hi", "how are you", "", "yes please"), brain, tts, memory=mem)
     pipe.converse()
     assert mem.saved == ["Akshay likes tea"]
     assert any("remember" in s.lower() for s in tts.spoken)
@@ -135,7 +135,7 @@ def test_memory_saved_on_spoken_yes():
 def test_memory_declined_not_saved():
     brain, tts = Brain(), Tts()
     mem = Mem("Akshay likes tea")
-    pipe = VoicePipeline(Wake(), Stt("hi", "", "no thanks"), brain, tts, memory=mem)
+    pipe = VoicePipeline(Wake(), Stt("hi", "how are you", "", "no thanks"), brain, tts, memory=mem)
     pipe.converse()
     assert mem.saved == []
 
@@ -163,6 +163,14 @@ def test_silent_reply_with_code_points_at_screen():
     pipe = VoicePipeline(Wake(), Stt("write code"), brain, tts)
     pipe.converse()
     assert "screen" in tts.spoken[0]
+
+
+def test_no_memory_ask_after_a_single_turn():
+    brain, tts = Brain(), Tts()
+    mem = Mem("some fact")
+    VoicePipeline(Wake(), Stt("hi"), brain, tts, memory=mem).converse()
+    assert mem.saved == []
+    assert all("remember" not in s.lower() for s in tts.spoken)
 
 
 def test_no_memory_ask_when_nothing_was_said():

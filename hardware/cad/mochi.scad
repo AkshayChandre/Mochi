@@ -1,4 +1,4 @@
-// Mochi shell v1 — NOVA-style desk companion.
+// Mochi shell v1 - NOVA-style desk companion.
 // Set `part` below (or via -D on the CLI), render (F6), export STL.
 // parts: head_front | head_back | ear | servo_cradle | neck_post |
 //        body_shell | base_plate | pod | arm | heart_inlay | assembly
