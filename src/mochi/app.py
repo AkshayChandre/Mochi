@@ -16,6 +16,7 @@ from mochi.constants import (
     STRANGER_GREETING,
 )
 from mochi.face.engine import MochiFace
+from mochi.skills import Skills
 from mochi.voice.pipeline import State, VoicePipeline
 
 
@@ -73,7 +74,7 @@ def make_apply(face: MochiFace, brain: BrainClient, sounds=None):
     return apply
 
 
-def make_intercept(face: MochiFace, memory):
+def make_intercept(face: MochiFace, memory, skills):
     def intercept(text: str) -> str | None:
         low = text.lower()
         if "expression" in low or "emotion" in low:
@@ -82,7 +83,7 @@ def make_intercept(face: MochiFace, memory):
         if fact := memory.explicit(text):
             memory.save(fact)
             return MEMORY_SAVED
-        return None
+        return skills.handle(text)
 
     return intercept
 
@@ -116,13 +117,22 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
         from mochi.voice.console import ConsoleIn, ConsoleOut, EnterWake
 
         sounds, wake, stt, tts = None, EnterWake(), ConsoleIn(), ConsoleOut()
+    def announce(text: str) -> None:
+        face.set_emotion("excited")
+        face.set_speaking(True)
+        tts.say(text)
+        tts.flush()
+        face.set_speaking(False)
+        face.set_emotion("neutral")
+
+    skills = Skills(announce)
     return VoicePipeline(
         wake,
         stt,
         brain,
         tts,
         make_apply(face, brain, sounds),
-        make_intercept(face, memory),
+        make_intercept(face, memory, skills),
         face.show_card,
         memory,
     )

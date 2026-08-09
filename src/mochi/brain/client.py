@@ -16,6 +16,7 @@ from mochi.constants import (
     SPEECH_JUNK_RE,
     SYSTEM_PROMPT,
 )
+from mochi.desktop import context_note
 
 
 class BrainOfflineError(RuntimeError):
@@ -65,6 +66,7 @@ class BrainClient:
         self.last_emotion = "happy"
         self.last_blocks = []
         msgs = list(self.history)
+        msgs.insert(1, {"role": "system", "content": context_note()})
         if self.store and (facts := self.store.recall(self.person)):
             msgs.insert(1, {"role": "system", "content": "You remember: " + "; ".join(facts)})
         if self.person:
