@@ -16,11 +16,10 @@ from mochi.constants import (
     SPEECH_JUNK_RE,
     SYSTEM_PROMPT,
 )
-
+from mochi.desktop import context_note
 
 class BrainOfflineError(RuntimeError):
     pass
-
 
 def split_sentences(text: str) -> tuple[list[str], str]:
     out, start = [], 0
@@ -30,20 +29,17 @@ def split_sentences(text: str) -> tuple[list[str], str]:
             start = i + 1
     return [s for s in out if s], text[start:]
 
-
 def clean_speech(text: str) -> str:
     kept = SPEECH_JUNK_RE.sub("", text)
     kept = "".join(ch for ch in kept if ord(ch) < 0x2500)
     kept = " ".join(kept.split())
     return kept if any(ch.isalpha() for ch in kept) else ""
 
-
 def clean_block(block: str) -> str:
     lines = block.strip("\n").splitlines()
     if lines and CODE_LANG_RE.fullmatch(lines[0].strip()):
         lines = lines[1:]
     return "\n".join(lines).strip()
-
 
 class BrainClient:
     def __init__(
@@ -65,6 +61,7 @@ class BrainClient:
         self.last_emotion = "happy"
         self.last_blocks = []
         msgs = list(self.history)
+        msgs.insert(1, {"role": "system", "content": context_note()})
         if self.store and (facts := self.store.recall(self.person)):
             msgs.insert(1, {"role": "system", "content": "You remember: " + "; ".join(facts)})
         if self.person:

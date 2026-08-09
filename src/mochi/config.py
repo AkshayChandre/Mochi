@@ -6,7 +6,6 @@ from pathlib import Path
 
 import yaml
 
-
 @dataclass(frozen=True)
 class Connections:
     brain_host: str = "127.0.0.1"

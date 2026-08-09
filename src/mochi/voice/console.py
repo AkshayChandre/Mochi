@@ -7,17 +7,14 @@ from mochi.brain.client import BrainClient, BrainOfflineError
 from mochi.constants import SPEECH_SECONDS_PER_CHAR
 from mochi.voice.pipeline import State, VoicePipeline
 
-
 class EnterWake:
     def wait(self) -> str:
         input("\n[press Enter to wake Mochi]")
         return ""
 
-
 class ConsoleIn:
     def listen(self) -> str:
         return input("you> ")
-
 
 class ConsoleOut:
     def say(self, text: str) -> None:
@@ -27,14 +24,11 @@ class ConsoleOut:
     def flush(self) -> None:
         pass
 
-
 def show_state(state: State) -> None:
     print(f"  [{state.value}]")
 
-
 def show_block(block: str) -> None:
     print(f"--- mochi's screen ---\n{block}\n----------------------")
-
 
 def main() -> None:
     pipeline = VoicePipeline(
@@ -48,7 +42,6 @@ def main() -> None:
         print("\nbye")
     except BrainOfflineError as err:
         sys.exit(f"error: {err}\nStart it with: ollama serve  (then: ollama pull <model>)")
-
 
 if __name__ == "__main__":
     main()

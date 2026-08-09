@@ -7,6 +7,16 @@ Versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Desktop awareness: active window and clock are injected into every
+  brain turn, and local skills answer time, date, "what am I working on",
+  and timers deterministically without the LLM. Timers announce
+  themselves out loud.
+- Face: 15 new emotions (angry, love, curious, confused, laughing, shy,
+  smug, bored, suspicious, sleepy, starstruck, shocked, proud, cool,
+  error) with heart, spiral, star, X and shades eye styles, brows,
+  tears, sparkles and winks. The face sleeps after 90s idle.
+
+### Added
 - Persistent memory: after a conversation, Mochi extracts one worthwhile
   fact, asks aloud for permission, and stores it per person in mochi.db;
   saved memories are recalled into every future conversation and survive

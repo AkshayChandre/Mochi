@@ -1,6 +1,6 @@
 # Mochi: Open-Source Desktop AI Companion
 
-A soft, blob-shaped robot that gives physical presence to a fully local,
+A robot that gives physical presence to a fully local,
 fully open-source AI. The robot body is the presence layer;
 PC is the brain. Zero paid services, zero cloud dependency.
 
@@ -75,6 +75,14 @@ GPU (much faster with the bigger models):
 pip install nvidia-cublas-cu12 nvidia-cudnn-cu12
 # then set WHISPER_DEVICE = "cuda" in constants.py
 ```
+
+### Desktop awareness
+
+Mochi knows the time and which window is focused, so "what time is it",
+"what am I working on", and "set a timer for 10 minutes" are answered
+instantly and locally, without asking the LLM. Timers speak up on their
+own when they finish. The same context is passed to the brain each turn,
+so it can reason about your day without guessing.
 
 ### Memory
 

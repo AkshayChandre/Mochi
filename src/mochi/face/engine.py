@@ -75,10 +75,8 @@ from mochi.constants import (
     WANDER_RADIUS,
 )
 
-
 def ease(current: float, target: float, rate: float, dt: float) -> float:
     return current + (target - current) * (1.0 - math.exp(-rate * dt))
-
 
 def heart_points(cx: float, cy: float, w: float, h: float) -> list[tuple[float, float]]:
     pts = []
@@ -88,7 +86,6 @@ def heart_points(cx: float, cy: float, w: float, h: float) -> list[tuple[float, 
         y = 13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t)
         pts.append((cx + x * w / 34, cy - y * h / 30))
     return pts
-
 
 def spiral_points(cx: float, cy: float, radius: float, turns: float = 2.4) -> list[tuple]:
     steps = 46
@@ -100,7 +97,6 @@ def spiral_points(cx: float, cy: float, radius: float, turns: float = 2.4) -> li
         for i in range(steps + 1)
     ]
 
-
 def star_points(cx: float, cy: float, size: float, spikes: int = 4) -> list[tuple[float, float]]:
     pts = []
     for i in range(spikes * 2):
@@ -108,7 +104,6 @@ def star_points(cx: float, cy: float, size: float, spikes: int = 4) -> list[tupl
         r = size if i % 2 == 0 else size * 0.42
         pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
     return pts
-
 
 class MochiFace:
     def __init__(self) -> None:
@@ -400,7 +395,6 @@ class MochiFace:
         ]
         pg.draw.lines(screen, color, False, pts, MOUTH_THICKNESS)
 
-
 def main() -> None:
     pg.init()
     screen = pg.display.set_mode((SIZE, SIZE))
@@ -452,7 +446,6 @@ def main() -> None:
         if frame_limit and frame >= frame_limit:
             pg.quit()
             return
-
 
 if __name__ == "__main__":
     main()

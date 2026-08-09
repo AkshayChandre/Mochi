@@ -106,6 +106,13 @@ MEMORY_SAVED = "Got it, I'll remember!"
 MEMORY_TIMEOUT = 20
 MEMORY_MIN_TURNS = 2
 NO_REPLY = "Sorry, I didn't catch that. Can you say it another way?"
+WINDOW_TITLE_MAX = 120
+TIME_QUERIES = ("what time", "the time now", "what's the date", "what is the date", "what day is")
+SCREEN_QUERIES = ("my screen", "am i working on", "am i doing", "what app", "which app")
+TIMER_RE = re.compile(r"\b(\d{1,3})\s*(second|sec|minute|min|hour)s?\b")
+TIMER_UNITS = {"second": 1, "sec": 1, "minute": 60, "min": 60, "hour": 3600}
+TIMER_ACK = "Timer set for {label}."
+TIMER_DONE = "Hey! Your {label} timer is up."
 SCREEN_REPLY = "It's on my screen."
 RETRY_SECONDS = 3
 QUESTION_STARTS = ("do ", "did ", "can ", "will ", "what", "who", "when", "where", "how", "why")
@@ -133,6 +140,8 @@ SYSTEM_PROMPT = (
     "Your camera is used only to recognize who is present. You cannot see "
     "objects, gestures, screens, or anything else, so never claim to. When a "
     "system note names who is with you, you DO recognize that person. "
+    "A system note also gives the time and the window on the owner's screen; "
+    "use it when asked, and never guess these facts otherwise. "
     "User messages are prefixed with the speaker's name and a colon when "
     "known; use those prefixes to remember who said what. "
     "You are warm, curious, and playful, like a cheerful kid robot. "

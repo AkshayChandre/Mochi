@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import math
+import threading
 from pathlib import Path
 
 import numpy as np
 
 from mochi.constants import PITCH_FACTOR, TREMOLO_DEPTH, TREMOLO_HZ, VOICE_NAME, VOICES_DIR
-
 
 class KidRobotVoice:
     def __init__(self) -> None:
@@ -21,8 +21,13 @@ class KidRobotVoice:
                 f"python -m piper.download_voices {VOICE_NAME} --data-dir {VOICES_DIR}"
             )
         self.voice = PiperVoice.load(str(model))
+        self.lock = threading.Lock()
 
     def say(self, text: str) -> None:
+        with self.lock:
+            self.render(text)
+
+    def render(self, text: str) -> None:
         chunks = [
             np.frombuffer(c.audio_int16_bytes, dtype=np.int16) for c in self.voice.synthesize(text)
         ]
