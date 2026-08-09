@@ -13,32 +13,26 @@ from mochi.constants import (
     YES_WORDS,
 )
 
-
 class State(str, Enum):
     IDLE = "idle"
     LISTENING = "listening"
     THINKING = "thinking"
     SPEAKING = "speaking"
 
-
 class WakeSource(Protocol):
     def wait(self) -> str: ...
 
-
 class Transcriber(Protocol):
     def listen(self) -> str: ...
-
 
 class Brain(Protocol):
     last_blocks: list[str]
 
     def chat_stream(self, text: str) -> Iterator[str]: ...
 
-
 class Speaker(Protocol):
     def say(self, text: str) -> None: ...
     def flush(self) -> None: ...
-
 
 class VoicePipeline:
     def __init__(

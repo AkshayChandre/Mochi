@@ -15,7 +15,6 @@ from mochi.constants import (
     STRANGER_FRAMES,
 )
 
-
 class FaceDB:
     def __init__(self, path: str = DB_PATH) -> None:
         self.conn = sqlite3.connect(path)
@@ -48,12 +47,10 @@ class FaceDB:
                 best, score = name, s
         return (best, score) if score >= FACE_MATCH_THRESHOLD else (None, score)
 
-
 def track_stranger(seen: list[np.ndarray], emb: np.ndarray) -> list[np.ndarray]:
     if seen and float(np.dot(emb, seen[-1])) < FACE_MATCH_THRESHOLD:
         return [emb]
     return [*seen, emb]
-
 
 class Recognizer:
     def __init__(self) -> None:
@@ -79,7 +76,6 @@ class Recognizer:
         largest = max(faces, key=lambda f: f.bbox[2] - f.bbox[0])
         return largest.normed_embedding
 
-
 class Presence:
     def __init__(self) -> None:
         self.db = FaceDB()
@@ -92,7 +88,6 @@ class Presence:
                 return self.db.identify(emb)[0], True
             time.sleep(0.2)
         return None, False
-
 
 def main() -> None:
     cmd = sys.argv[1] if len(sys.argv) > 1 else "watch"

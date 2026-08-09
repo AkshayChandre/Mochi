@@ -13,7 +13,6 @@ from mochi.constants import (
     REMEMBER_TRIGGERS,
 )
 
-
 class MemoryStore:
     def __init__(self, path: str = DB_PATH) -> None:
         self.conn = sqlite3.connect(path)
@@ -33,7 +32,6 @@ class MemoryStore:
             (person or "", limit),
         ).fetchall()
         return [f"{p}: {f}" if p else f for p, f in reversed(rows)]
-
 
 class Memory:
     def __init__(self, brain, store: MemoryStore) -> None:

@@ -6,7 +6,6 @@ from datetime import datetime
 
 from mochi.constants import WINDOW_TITLE_MAX
 
-
 def active_window() -> str:
     if not sys.platform.startswith("win"):
         return ""
@@ -22,11 +21,9 @@ def active_window() -> str:
     except Exception:
         return ""
 
-
 def app_name(title: str) -> str:
     # window titles are usually "document - App Name"
     return title.rsplit(" - ", 1)[-1].strip() if " - " in title else title
-
 
 def context_note() -> str:
     now = datetime.now()

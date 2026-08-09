@@ -19,11 +19,9 @@ from mochi.face.engine import MochiFace
 from mochi.skills import Skills
 from mochi.voice.pipeline import State, VoicePipeline
 
-
 class InstantWake:
     def wait(self) -> str:
         return ""
-
 
 class VisionWake:
     def __init__(self, presence, brain: BrainClient) -> None:
@@ -47,7 +45,6 @@ class VisionWake:
             return STRANGER_GREETING
         return ""
 
-
 class VisionStt:
     def __init__(self, stt, presence, brain: BrainClient) -> None:
         self.stt = stt
@@ -62,7 +59,6 @@ class VisionStt:
                 self.brain.person = name
         return text
 
-
 def make_apply(face: MochiFace, brain: BrainClient, sounds=None):
     def apply(state: State) -> None:
         if sounds is not None:
@@ -72,7 +68,6 @@ def make_apply(face: MochiFace, brain: BrainClient, sounds=None):
         face.set_emotion(emotion)
 
     return apply
-
 
 def make_intercept(face: MochiFace, memory, skills):
     def intercept(text: str) -> str | None:
@@ -86,7 +81,6 @@ def make_intercept(face: MochiFace, memory, skills):
         return skills.handle(text)
 
     return intercept
-
 
 def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
     from mochi.brain.memory import Memory, MemoryStore
@@ -137,7 +131,6 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
         memory,
     )
 
-
 def start_voice(face: MochiFace) -> None:
     brain = BrainClient()
 
@@ -156,7 +149,6 @@ def start_voice(face: MochiFace) -> None:
 
     threading.Thread(target=loop, daemon=True).start()
 
-
 def main() -> None:
     pg.init()
     screen = pg.display.set_mode((SIZE, SIZE))
@@ -174,7 +166,6 @@ def main() -> None:
         face.draw(screen)
         pg.display.set_caption(f"Mochi - {face.emotion}")
         pg.display.flip()
-
 
 if __name__ == "__main__":
     main()

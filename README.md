@@ -1,6 +1,6 @@
 # Mochi: Open-Source Desktop AI Companion
 
-A soft, blob-shaped robot that gives physical presence to a fully local,
+A robot that gives physical presence to a fully local,
 fully open-source AI. The robot body is the presence layer;
 PC is the brain. Zero paid services, zero cloud dependency.
 

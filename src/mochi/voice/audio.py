@@ -16,16 +16,11 @@ from mochi.constants import (
     TARGET_PEAK,
 )
 
-
 def rms(frame: np.ndarray) -> float:
     return float(np.sqrt(np.mean(np.square(frame))))
 
-
 def noise_gate(ambient: float) -> float:
-    """Speech threshold adapted to the room, clamped so a noisy calibration
-    (someone talking through it) cannot deafen the mic."""
     return max(SILENCE_RMS, min(ambient * NOISE_MULT, SILENCE_RMS * NOISE_GATE_CEILING))
-
 
 def normalize(audio: np.ndarray) -> np.ndarray:
     peak = float(np.max(np.abs(audio)))

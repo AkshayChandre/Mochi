@@ -14,7 +14,6 @@ from mochi.constants import (
 )
 from mochi.desktop import active_window, app_name
 
-
 def parse_timer(text: str) -> tuple[int, str] | None:
     match = TIMER_RE.search(text.lower())
     if not match:
@@ -22,7 +21,6 @@ def parse_timer(text: str) -> tuple[int, str] | None:
     amount, unit = int(match.group(1)), match.group(2)
     seconds = amount * TIMER_UNITS[unit]
     return (seconds, f"{amount} {unit}{'s' if amount != 1 else ''}") if seconds else None
-
 
 def answer_time(text: str) -> str | None:
     low = text.lower()
@@ -33,7 +31,6 @@ def answer_time(text: str) -> str | None:
         return f"It's {now:%A, %B %d}."
     return f"It's {now:%I:%M %p}.".lstrip("0")
 
-
 def answer_screen(text: str) -> str | None:
     low = text.lower()
     if not any(q in low for q in SCREEN_QUERIES):
@@ -42,7 +39,6 @@ def answer_screen(text: str) -> str | None:
     if not title:
         return "I can't see your screen right now."
     return f"You're in {app_name(title)}."
-
 
 class Skills:
     """Deterministic local actions, handled without the LLM so they are

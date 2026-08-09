@@ -9,7 +9,6 @@ import pytest
 
 from mochi.face.engine import EMOTIONS, SIZE, MochiFace
 
-
 @pytest.fixture(scope="module")
 def screen():
     pg.init()
@@ -42,7 +41,7 @@ def test_blink_cycle_completes():
     face.next_blink = 0.0
     face.update(1 / 60, None)
     assert face.blink_phase == "closing"
-    _settle(face, 120)  # 2s >> full blink (~180ms) even with a double-blink
+    _settle(face, 120)
     assert face.blink == 1.0
     assert face.blink_phase == "idle"
 
@@ -61,7 +60,6 @@ def test_parade_cycles_all_emotions_then_neutral(screen):
     assert face.parade == []
     assert face.emotion == "neutral"
 
-
 def test_idle_sleeps_then_wakes(screen):
     from mochi.constants import IDLE_SLEEP_SECONDS
 
@@ -73,7 +71,6 @@ def test_idle_sleeps_then_wakes(screen):
     face.update(1 / 60)
     assert face.emotion == "happy"
 
-
 def test_no_idle_sleep_while_showing_a_card(screen):
     from mochi.constants import IDLE_SLEEP_SECONDS
 
@@ -84,14 +81,12 @@ def test_no_idle_sleep_while_showing_a_card(screen):
     face.update(1 / 60)
     assert face.emotion == "neutral"
 
-
 def test_card_shows_and_renders(screen):
     face = MochiFace()
     face.show_card("line1\nline2")
     face.update(1 / 60)
     face.draw(screen)
     assert face.card_lines == ["line1", "line2"]
-
 
 def test_long_card_scrolls(screen):
     face = MochiFace()
@@ -101,12 +96,10 @@ def test_long_card_scrolls(screen):
     face.draw(screen)
     assert face.card_scroll > 0
 
-
 def test_emotion_colors_cover_all_emotions():
     from mochi.constants import EMOTION_COLORS
 
     assert set(EMOTION_COLORS) == set(EMOTIONS)
-
 
 def test_speaking_mode_renders(screen):
     face = MochiFace()
