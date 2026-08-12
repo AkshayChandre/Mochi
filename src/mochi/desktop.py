@@ -28,11 +28,11 @@ def app_name(title: str) -> str:
 
 
 def document_name(title: str) -> str:
-    """Everything before the app name: the file, page, or chat you are on."""
+    """The file or page, which apps put FIRST: 'README.md - Mochi - VS Code'."""
     if " - " not in title:
         return ""
-    head = title.rsplit(" - ", 1)[0].strip()
-    return head.rsplit(" - ", 1)[-1].strip() if " - " in head else head
+    # editors prefix unsaved files with a dot or star
+    return title.split(" - ", 1)[0].strip().lstrip("*●•").strip()
 
 def context_note() -> str:
     now = datetime.now()

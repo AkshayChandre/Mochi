@@ -146,7 +146,21 @@ LANGUAGE_CUES = ("speak", "talk", "say", "reply", "answer", "in ")
 ENGLISH_ONLY_REPLY = (
     "Sorry, my voice only knows English for now, so anything else comes out as gibberish."
 )
-SCREEN_WORDS = ("screen", "window", "app", "application", "tab", "working on", "doing")
+SCREEN_WORDS = (
+    "screen",
+    "window",
+    "app",
+    "application",
+    "tab",
+    "file",
+    "document",
+    "page",
+    "working on",
+    "doing",
+    "editing",
+    "reading",
+    "looking at",
+)
 SELF_WORDS = ("i am", "i'm", "am i", " my ", "my ")
 FAREWELL_WORDS = ("bye", "goodnight", "good night", "see you", "talk later", "catch you later")
 GOODBYE_REPLY = "Goodnight! Wake me whenever."

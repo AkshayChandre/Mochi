@@ -60,6 +60,9 @@ def test_screen_query_phrasings():
         "which app am i using",
         "what am i doing",
         "what window am i in",
+        "what file am i on",
+        "which file am i editing",
+        "what page am i reading",
     ]:
         assert ans(q) is not None, q
     assert ans("what is on the screen in the movie") is None
@@ -101,8 +104,9 @@ def test_app_name_strips_document_prefix():
 def test_document_name_kept_for_context():
     from mochi.desktop import document_name
 
-    assert document_name("client.py - Mochi - Visual Studio Code") == "Mochi"
-    assert document_name("Inbox (12) - Gmail") == "Inbox (12)"
+    assert document_name("README.md - Mochi - Visual Studio Code") == "README.md"
+    assert document_name("● client.py - Mochi - Visual Studio Code") == "client.py"
+    assert document_name("Inbox (12) - Gmail - Google Chrome") == "Inbox (12)"
     assert document_name("Untitled") == ""
 
 def test_context_note_has_time():

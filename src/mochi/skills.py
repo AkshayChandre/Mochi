@@ -68,6 +68,7 @@ def answer_screen(text: str) -> str | None:
     if not (any(w in low for w in SCREEN_WORDS) and any(s in low for s in SELF_WORDS)):
         return None
     title = active_window()
+    print(f"window title: {title!r}")
     if not title:
         return "I can't see your screen right now."
     doc = document_name(title)
