@@ -51,6 +51,43 @@ def test_non_latin_never_reaches_the_voice():
     assert clean_speech("Hello there") == "Hello there"
 
 
+def test_screen_query_phrasings():
+    from mochi.skills import answer_screen as ans
+
+    for q in [
+        "what screen am i on",
+        "on what screen am i",
+        "which app am i using",
+        "what am i doing",
+        "what window am i in",
+    ]:
+        assert ans(q) is not None, q
+    assert ans("what is on the screen in the movie") is None
+
+
+def test_farewell_sleeps():
+    moods = []
+    skills = Skills(lambda _: None, moods.append)
+    assert "Goodnight" in skills.handle("bye")
+    assert moods == ["sleeping"]
+    assert skills.handle("bye the way tell me about goodbyes in japan") is None
+
+
+def test_skill_emotions_are_real_emotions():
+    from mochi.constants import EMOTIONS, SKILL_EMOTIONS
+
+    assert set(SKILL_EMOTIONS.values()) <= set(EMOTIONS)
+
+
+def test_guess_emotion_fallback():
+    from mochi.brain.client import guess_emotion
+
+    assert guess_emotion("Sorry, I can't do that") == "sad"
+    assert guess_emotion("Congratulations, that's amazing!") == "excited"
+    assert guess_emotion("What do you mean?") == "curious"
+    assert guess_emotion("The file is saved") == "neutral"
+
+
 def test_screen_answer_without_windows():
     reply = answer_screen("what am i working on")
     assert reply is not None

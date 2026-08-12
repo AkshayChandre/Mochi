@@ -9,6 +9,7 @@ from mochi.brain.client import BrainClient, BrainOfflineError
 from mochi.constants import (
     FPS,
     GREETING,
+    IDENTITY_CACHE_SECONDS,
     MEMORY_SAVED,
     RETRY_SECONDS,
     SIZE,
@@ -56,7 +57,7 @@ class VisionStt:
     def listen(self) -> str:
         text = self.stt.listen()
         if text.strip():
-            name, seen = self.presence.whos_there(tries=2)
+            name, seen = self.presence.whos_there(tries=1, max_age=IDENTITY_CACHE_SECONDS)
             if seen:
                 self.brain.person = name
         return text
@@ -65,8 +66,11 @@ def make_apply(face: MochiFace, brain: BrainClient, sounds=None):
     def apply(state: State) -> None:
         if sounds is not None:
             sounds.on_state(state)
-        face.set_speaking(state == State.SPEAKING)
-        emotion = brain.last_emotion if state == State.SPEAKING else STATE_EMOTION[state.value]
+        face.set_speaking(state == State.SPEAKING and brain.last_emotion != "sleeping")
+        if state == State.SPEAKING or (state == State.IDLE and brain.last_emotion == "sleeping"):
+            emotion = brain.last_emotion
+        else:
+            emotion = STATE_EMOTION[state.value]
         face.set_emotion(emotion)
 
     return apply
@@ -121,7 +125,10 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
         face.set_speaking(False)
         face.set_emotion("neutral")
 
-    skills = Skills(announce)
+    def set_mood(emotion: str) -> None:
+        brain.last_emotion = emotion
+
+    skills = Skills(announce, set_mood)
     print(f"desktop: {context_note()}")
     return VoicePipeline(
         wake,

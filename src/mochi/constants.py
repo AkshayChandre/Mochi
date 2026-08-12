@@ -146,7 +146,20 @@ LANGUAGE_CUES = ("speak", "talk", "say", "reply", "answer", "in ")
 ENGLISH_ONLY_REPLY = (
     "Sorry, my voice only knows English for now, so anything else comes out as gibberish."
 )
-SCREEN_QUERIES = ("my screen", "am i working on", "am i doing", "what app", "which app")
+SCREEN_WORDS = ("screen", "window", "app", "application", "tab", "working on", "doing")
+SELF_WORDS = ("i am", "i'm", "am i", " my ", "my ")
+FAREWELL_WORDS = ("bye", "goodnight", "good night", "see you", "talk later", "catch you later")
+GOODBYE_REPLY = "Goodnight! Wake me whenever."
+SKILL_EMOTIONS = {"screen": "curious", "time": "neutral", "timer": "excited", "bye": "sleeping"}
+IDENTITY_CACHE_SECONDS = 25.0
+EMOTION_HINTS = (
+    (("sorry", "cannot", "can't", "unable", "don't know", "not sure"), "sad"),
+    (("congrat", "amazing", "awesome", "fantastic", "well done", "great job"), "excited"),
+    (("love", "adorable", "sweet of you", "you're the best"), "love"),
+    (("haha", "lol", "funny", "joke"), "laughing"),
+    (("?",), "curious"),
+    (("!",), "happy"),
+)
 TIMER_RE = re.compile(r"\b(\d{1,3})\s*(second|sec|minute|min|hour)s?\b")
 TIMER_UNITS = {"second": 1, "sec": 1, "minute": 60, "min": 60, "hour": 3600}
 TIMER_ACK = "Timer set for {label}."
@@ -218,13 +231,13 @@ STATE_EMOTION = {
 SAMPLE_RATE = 16000
 FRAME_SECONDS = 0.03
 SILENCE_RMS = 0.010
-SILENCE_END_SECONDS = 0.9
+SILENCE_END_SECONDS = 0.7
 CONVERSATION_WAIT_SECONDS = 8.0
 MAX_UTTERANCE_SECONDS = 20.0
 MIN_SPEECH_SECONDS = 0.3
 WHISPER_MODEL = "base.en"  # swap to "small.en" if accents are misheard
 WHISPER_DEVICE = "cpu"
-WHISPER_BEAM = 5
+WHISPER_BEAM = 2
 WHISPER_PROMPT = f"A conversation with Mochi, a desk robot, and its owner {OWNER_NAME}."
 CALIBRATION_FRAMES = 12
 NOISE_MULT = 2.5

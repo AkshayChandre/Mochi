@@ -8,9 +8,13 @@ from zoneinfo import ZoneInfo
 from mochi.constants import (
     CITY_TZ,
     ENGLISH_ONLY_REPLY,
+    FAREWELL_WORDS,
+    GOODBYE_REPLY,
     LANGUAGE_CUES,
     LANGUAGE_WORDS,
-    SCREEN_QUERIES,
+    SCREEN_WORDS,
+    SELF_WORDS,
+    SKILL_EMOTIONS,
     TIME_QUERIES,
     TIMER_ACK,
     TIMER_DONE,
@@ -61,20 +65,33 @@ def answer_language(text: str) -> str | None:
 
 def answer_screen(text: str) -> str | None:
     low = text.lower()
-    if not any(q in low for q in SCREEN_QUERIES):
+    if not (any(w in low for w in SCREEN_WORDS) and any(s in low for s in SELF_WORDS)):
         return None
     title = active_window()
     if not title:
         return "I can't see your screen right now."
     return f"You're in {app_name(title)}."
 
+
+def answer_farewell(text: str) -> str | None:
+    low = text.lower().strip(" .!?")
+    words = low.split()
+    if any(low.startswith(w) or low.endswith(w) for w in FAREWELL_WORDS) and len(words) <= 6:
+        return GOODBYE_REPLY
+    return None
+
 class Skills:
     """Deterministic local actions, handled without the LLM so they are
     instant and cannot be hallucinated."""
 
-    def __init__(self, speak=None) -> None:
+    def __init__(self, speak=None, set_emotion=None) -> None:
         self.speak = speak
+        self.set_emotion = set_emotion
         self.timers: list[threading.Timer] = []
+
+    def emote(self, kind: str) -> None:
+        if self.set_emotion:
+            self.set_emotion(SKILL_EMOTIONS[kind])
 
     def start_timer(self, seconds: int, label: str) -> str:
         def fire() -> None:
@@ -89,8 +106,16 @@ class Skills:
 
     def handle(self, text: str) -> str | None:
         if (parsed := parse_timer(text)) and re.search(r"\btimer|remind\b", text.lower()):
+            self.emote("timer")
             return self.start_timer(*parsed)
-        reply = answer_language(text) or answer_time(text) or answer_screen(text)
-        if reply:
-            print(f"skill -> {reply}")
-        return reply
+        for kind, reply in (
+            ("bye", answer_farewell(text)),
+            ("time", answer_language(text)),
+            ("time", answer_time(text)),
+            ("screen", answer_screen(text)),
+        ):
+            if reply:
+                self.emote(kind)
+                print(f"skill -> {reply}")
+                return reply
+        return None

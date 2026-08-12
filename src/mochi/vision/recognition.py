@@ -81,14 +81,23 @@ class Presence:
     def __init__(self) -> None:
         self.db = FaceDB()
         self.rec = Recognizer()
+        self.cached: tuple[str | None, bool] = (None, False)
+        self.cached_at = 0.0
 
-    def whos_there(self, tries: int = PRESENCE_TRIES) -> tuple[str | None, bool]:
+    # face detection costs a few hundred ms; re-running it every utterance
+    # was the biggest chunk of per-turn latency
+    def whos_there(self, tries: int = PRESENCE_TRIES, max_age: float = 0.0):
+        if max_age and time.monotonic() - self.cached_at < max_age:
+            return self.cached
         for _ in range(tries):
             emb = self.rec.embedding()
             if emb is not None:
-                return self.db.identify(emb)[0], True
+                self.cached = (self.db.identify(emb)[0], True)
+                self.cached_at = time.monotonic()
+                return self.cached
             time.sleep(0.2)
-        return None, False
+        self.cached, self.cached_at = (None, False), time.monotonic()
+        return self.cached
 
 def main() -> None:
     cmd = sys.argv[1] if len(sys.argv) > 1 else "watch"
