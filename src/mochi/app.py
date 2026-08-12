@@ -9,15 +9,19 @@ from mochi.brain.client import BrainClient, BrainOfflineError
 from mochi.constants import (
     FPS,
     GREETING,
+    IDENTITY_CACHE_SECONDS,
     MEMORY_SAVED,
     RETRY_SECONDS,
     SIZE,
+    SLEEP_HOLD_STATES,
     STATE_EMOTION,
     STRANGER_GREETING,
 )
+from mochi.desktop import context_note
 from mochi.face.engine import MochiFace
 from mochi.skills import Skills
 from mochi.voice.pipeline import State, VoicePipeline
+
 
 class InstantWake:
     def wait(self) -> str:
@@ -54,7 +58,7 @@ class VisionStt:
     def listen(self) -> str:
         text = self.stt.listen()
         if text.strip():
-            name, seen = self.presence.whos_there(tries=2)
+            name, seen = self.presence.whos_there(tries=1, max_age=IDENTITY_CACHE_SECONDS)
             if seen:
                 self.brain.person = name
         return text
@@ -63,14 +67,20 @@ def make_apply(face: MochiFace, brain: BrainClient, sounds=None):
     def apply(state: State) -> None:
         if sounds is not None:
             sounds.on_state(state)
-        face.set_speaking(state == State.SPEAKING)
-        emotion = brain.last_emotion if state == State.SPEAKING else STATE_EMOTION[state.value]
+        asleep = brain.last_emotion == "sleeping"
+        face.set_speaking(state == State.SPEAKING and not asleep)
+        if state == State.SPEAKING or (asleep and state.value in SLEEP_HOLD_STATES):
+            emotion = brain.last_emotion
+        else:
+            emotion = STATE_EMOTION[state.value]
         face.set_emotion(emotion)
 
     return apply
 
-def make_intercept(face: MochiFace, memory, skills):
+def make_intercept(face: MochiFace, memory, skills, brain: BrainClient):
     def intercept(text: str) -> str | None:
+        if brain.last_emotion == "sleeping":
+            brain.last_emotion = "neutral"  # any speech wakes Mochi up
         low = text.lower()
         if "expression" in low or "emotion" in low:
             face.play_parade()
@@ -119,14 +129,18 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
         face.set_speaking(False)
         face.set_emotion("neutral")
 
-    skills = Skills(announce)
+    def set_mood(emotion: str) -> None:
+        brain.last_emotion = emotion
+
+    skills = Skills(announce, set_mood)
+    print(f"desktop: {context_note()}")
     return VoicePipeline(
         wake,
         stt,
         brain,
         tts,
         make_apply(face, brain, sounds),
-        make_intercept(face, memory, skills),
+        make_intercept(face, memory, skills, brain),
         face.show_card,
         memory,
     )

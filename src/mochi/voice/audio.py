@@ -16,6 +16,7 @@ from mochi.constants import (
     TARGET_PEAK,
 )
 
+
 def rms(frame: np.ndarray) -> float:
     return float(np.sqrt(np.mean(np.square(frame))))
 

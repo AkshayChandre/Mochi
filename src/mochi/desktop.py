@@ -6,6 +6,7 @@ from datetime import datetime
 
 from mochi.constants import WINDOW_TITLE_MAX
 
+
 def active_window() -> str:
     if not sys.platform.startswith("win"):
         return ""
@@ -24,6 +25,14 @@ def active_window() -> str:
 def app_name(title: str) -> str:
     # window titles are usually "document - App Name"
     return title.rsplit(" - ", 1)[-1].strip() if " - " in title else title
+
+
+def document_name(title: str) -> str:
+    """The file or page, which apps put FIRST: 'README.md - Mochi - VS Code'."""
+    if " - " not in title:
+        return ""
+    # editors prefix unsaved files with a dot or star
+    return title.split(" - ", 1)[0].strip().lstrip("*●•").strip()
 
 def context_note() -> str:
     now = datetime.now()

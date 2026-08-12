@@ -12,6 +12,7 @@ requires-python = ">=3.10"
 dependencies = [
     "pygame>=2.5",
     "pyyaml>=6",
+    "tzdata>=2024.1; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]

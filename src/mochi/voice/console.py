@@ -7,6 +7,7 @@ from mochi.brain.client import BrainClient, BrainOfflineError
 from mochi.constants import SPEECH_SECONDS_PER_CHAR
 from mochi.voice.pipeline import State, VoicePipeline
 
+
 class EnterWake:
     def wait(self) -> str:
         input("\n[press Enter to wake Mochi]")

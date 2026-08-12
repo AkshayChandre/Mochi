@@ -6,6 +6,7 @@ import pytest
 from mochi.brain import client as brain_client
 from mochi.brain.client import BrainClient, BrainOfflineError, split_sentences
 
+
 class FakeResponse(io.BytesIO):
     def __enter__(self):
         return self
@@ -107,13 +108,13 @@ def test_memories_injected_when_store_present(monkeypatch):
     assert any("likes tea" in m["content"] for m in captured["payload"]["messages"])
     assert all("likes tea" not in m["content"] for m in bc.history)
 
-def test_stream_without_tag_defaults_happy(monkeypatch):
-    resp = stream_lines("no tag here")
+def test_untagged_reply_gets_guessed_emotion(monkeypatch):
+    resp = stream_lines("Sorry, I can't help with that")
     monkeypatch.setattr(brain_client, "urlopen", lambda req, timeout: resp)
     bc = BrainClient(host="test", port=1)
-    bc.last_emotion = "sad"
-    assert list(bc.chat_stream("hi")) == ["no tag here"]
-    assert bc.last_emotion == "happy"
+    assert list(bc.chat_stream("hi")) == ["Sorry, I can't help with that"]
+    assert bc.last_emotion == "sad"
+    assert not bc.tagged
 
 def test_stream_offline_raises_and_rolls_back(monkeypatch):
     def fake_urlopen(req, timeout):

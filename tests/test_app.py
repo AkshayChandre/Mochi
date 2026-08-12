@@ -1,10 +1,11 @@
 from mochi.app import VisionStt, VisionWake
 
+
 class Presence:
     def __init__(self, *answers):
         self.answers = list(answers)
 
-    def whos_there(self, tries=6):
+    def whos_there(self, tries=6, max_age=0.0):
         return self.answers.pop(0) if self.answers else (None, False)
 
 class Brain:

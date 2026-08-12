@@ -4,6 +4,7 @@ np = pytest.importorskip("numpy")
 
 from mochi.vision.recognition import FaceDB, track_stranger  # noqa: E402
 
+
 def vec(seed):
     rng = np.random.default_rng(seed)
     v = rng.normal(size=512).astype(np.float32)

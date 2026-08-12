@@ -1,5 +1,6 @@
 from mochi.brain.memory import Memory, MemoryStore
 
+
 class FakeBrain:
     def __init__(self, reply):
         self.reply = reply

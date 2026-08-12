@@ -9,6 +9,7 @@ from mochi.constants import (
 )
 from mochi.voice.audio import Recorder
 
+
 def is_noise(text: str) -> bool:
     stripped = "".join(c for c in text.lower() if c.isalnum() or c.isspace()).strip()
     return not stripped or stripped in WHISPER_FILLERS

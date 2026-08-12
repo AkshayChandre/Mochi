@@ -8,6 +8,7 @@ sounds = pytest.importorskip("mochi.voice.sounds")
 
 from mochi.constants import SILENCE_RMS, SOUND_SAMPLE_RATE  # noqa: E402
 
+
 def test_rms_discriminates_silence_from_speech():
     silence = np.zeros(480, dtype=np.float32)
     t = np.linspace(0, 0.03, 480)

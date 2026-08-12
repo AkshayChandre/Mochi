@@ -10,13 +10,16 @@ from mochi.constants import (
     BRAIN_OPTIONS,
     BRAIN_TIMEOUT,
     CODE_LANG_RE,
+    EMOTION_HINTS,
     EMOTIONS,
     KEEP_ALIVE,
+    LATIN_MAX,
     MAX_HISTORY,
     SPEECH_JUNK_RE,
     SYSTEM_PROMPT,
 )
 from mochi.desktop import context_note
+
 
 class BrainOfflineError(RuntimeError):
     pass
@@ -30,10 +33,22 @@ def split_sentences(text: str) -> tuple[list[str], str]:
     return [s for s in out if s], text[start:]
 
 def clean_speech(text: str) -> str:
+    # Piper speaks English only: anything past Latin Extended-B (Telugu,
+    # Devanagari, CJK, Arabic...) would be voiced as gibberish.
     kept = SPEECH_JUNK_RE.sub("", text)
-    kept = "".join(ch for ch in kept if ord(ch) < 0x2500)
+    kept = "".join(ch for ch in kept if ord(ch) <= LATIN_MAX)
     kept = " ".join(kept.split())
     return kept if any(ch.isalpha() for ch in kept) else ""
+
+def guess_emotion(text: str) -> str:
+    """Fallback when the model forgets its emotion tag, which a 3b model
+    does often; a flat 'happy' every turn reads as dead."""
+    low = text.lower()
+    for cues, emotion in EMOTION_HINTS:
+        if any(cue in low for cue in cues):
+            return emotion
+    return "neutral"
+
 
 def clean_block(block: str) -> str:
     lines = block.strip("\n").splitlines()
@@ -50,7 +65,8 @@ class BrainClient:
         self.url = f"http://{host}:{port}/api/chat"
         self.model = model or CONNECTIONS.llm_model
         self.history: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
-        self.last_emotion = "happy"
+        self.last_emotion = "neutral"
+        self.tagged = False
         self.last_blocks: list[str] = []
         self.person: str | None = None
         self.store = None
@@ -58,7 +74,8 @@ class BrainClient:
     def chat_stream(self, text: str) -> Iterator[str]:
         spoken_by = f"{self.person}: {text}" if self.person else text
         self.history.append({"role": "user", "content": spoken_by})
-        self.last_emotion = "happy"
+        self.last_emotion = "neutral"
+        self.tagged = False
         self.last_blocks = []
         msgs = list(self.history)
         msgs.insert(1, {"role": "system", "content": context_note()})
@@ -118,6 +135,8 @@ class BrainClient:
             self.last_blocks.append(clean_block(fence_buf))
         if tail := clean_speech(speak_buf):
             yield tail
+        if not self.tagged:
+            self.last_emotion = guess_emotion(raw)
         self.history.append({"role": "assistant", "content": raw})
         self.trim()
 
@@ -150,6 +169,7 @@ class BrainClient:
         tag = lead[1:end].strip().lower()
         if tag in EMOTIONS:
             self.last_emotion = tag
+            self.tagged = True
         return lead[end + 1 :].lstrip(), True
 
     def consume_bare_tag(self, buffer: str, lead: str) -> tuple[str, bool]:
@@ -161,6 +181,7 @@ class BrainClient:
                     return buffer, False
                 if after[0] in ":-.\u2013\u2014":
                     self.last_emotion = emo
+                    self.tagged = True
                     return after[1:].lstrip(), True
                 return buffer, True
             if emo.startswith(low):
