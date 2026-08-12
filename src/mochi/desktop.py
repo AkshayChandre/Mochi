@@ -6,6 +6,7 @@ from datetime import datetime
 
 from mochi.constants import WINDOW_TITLE_MAX
 
+
 def active_window() -> str:
     if not sys.platform.startswith("win"):
         return ""

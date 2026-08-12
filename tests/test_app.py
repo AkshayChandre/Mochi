@@ -1,5 +1,6 @@
 from mochi.app import VisionStt, VisionWake
 
+
 class Presence:
     def __init__(self, *answers):
         self.answers = list(answers)

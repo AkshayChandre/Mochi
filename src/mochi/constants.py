@@ -107,7 +107,45 @@ MEMORY_TIMEOUT = 20
 MEMORY_MIN_TURNS = 2
 NO_REPLY = "Sorry, I didn't catch that. Can you say it another way?"
 WINDOW_TITLE_MAX = 120
-TIME_QUERIES = ("what time", "the time now", "what's the date", "what is the date", "what day is")
+TIME_QUERIES = (
+    "what time",
+    "the time",
+    "time now",
+    "what's the date",
+    "what is the date",
+    "what day is",
+)
+CITY_TZ = {
+    "india": "Asia/Kolkata",
+    "hyderabad": "Asia/Kolkata",
+    "bangalore": "Asia/Kolkata",
+    "mumbai": "Asia/Kolkata",
+    "delhi": "Asia/Kolkata",
+    "chennai": "Asia/Kolkata",
+    "dubai": "Asia/Dubai",
+    "singapore": "Asia/Singapore",
+    "japan": "Asia/Tokyo",
+    "tokyo": "Asia/Tokyo",
+    "london": "Europe/London",
+    "uk": "Europe/London",
+    "germany": "Europe/Berlin",
+    "berlin": "Europe/Berlin",
+    "new york": "America/New_York",
+    "california": "America/Los_Angeles",
+    "chicago": "America/Chicago",
+    "sydney": "Australia/Sydney",
+    "australia": "Australia/Sydney",
+    "utc": "UTC",
+}
+LANGUAGE_WORDS = (
+    "telugu", "hindi", "tamil", "kannada", "malayalam", "marathi", "bengali",
+    "urdu", "punjabi", "gujarati", "spanish", "french", "german", "japanese",
+    "chinese", "korean", "arabic", "russian", "italian", "portuguese",
+)
+LANGUAGE_CUES = ("speak", "talk", "say", "reply", "answer", "in ")
+ENGLISH_ONLY_REPLY = (
+    "Sorry, my voice only knows English for now, so anything else comes out as gibberish."
+)
 SCREEN_QUERIES = ("my screen", "am i working on", "am i doing", "what app", "which app")
 TIMER_RE = re.compile(r"\b(\d{1,3})\s*(second|sec|minute|min|hour)s?\b")
 TIMER_UNITS = {"second": 1, "sec": 1, "minute": 60, "min": 60, "hour": 3600}
@@ -150,7 +188,8 @@ SYSTEM_PROMPT = (
     "speak the full answer as plain sentences. If you did not understand or "
     "the request is ambiguous, ask a short clarifying question instead of "
     "guessing. Never invent facts. "
-    "Always speak English only. "
+    "Your voice can only pronounce English, so always reply in English even "
+    "if asked for another language; say your voice only knows English. "
     "Start every reply with exactly one emotion tag from: "
     "[happy] [excited] [sad] [angry] [love] [curious] [confused] [laughing] "
     "[shy] [smug] [bored] [suspicious] [sleepy] [starstruck] [shocked] "
@@ -165,6 +204,7 @@ SYSTEM_PROMPT = (
 )
 CODE_LANG_RE = re.compile(r"[A-Za-z0-9_+\-#]{1,15}")
 SPEECH_JUNK_RE = re.compile(r"\[[^\]\n]{0,30}\]|\*[^*\n]{0,30}\*")
+LATIN_MAX = 0x024F
 
 SPEECH_SECONDS_PER_CHAR = 0.03
 

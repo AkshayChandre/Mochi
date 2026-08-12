@@ -15,6 +15,7 @@ from mochi.constants import (
     STRANGER_FRAMES,
 )
 
+
 class FaceDB:
     def __init__(self, path: str = DB_PATH) -> None:
         self.conn = sqlite3.connect(path)

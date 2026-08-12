@@ -15,9 +15,11 @@ from mochi.constants import (
     STATE_EMOTION,
     STRANGER_GREETING,
 )
+from mochi.desktop import context_note
 from mochi.face.engine import MochiFace
 from mochi.skills import Skills
 from mochi.voice.pipeline import State, VoicePipeline
+
 
 class InstantWake:
     def wait(self) -> str:
@@ -120,6 +122,7 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
         face.set_emotion("neutral")
 
     skills = Skills(announce)
+    print(f"desktop: {context_note()}")
     return VoicePipeline(
         wake,
         stt,

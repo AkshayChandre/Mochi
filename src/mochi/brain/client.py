@@ -12,11 +12,13 @@ from mochi.constants import (
     CODE_LANG_RE,
     EMOTIONS,
     KEEP_ALIVE,
+    LATIN_MAX,
     MAX_HISTORY,
     SPEECH_JUNK_RE,
     SYSTEM_PROMPT,
 )
 from mochi.desktop import context_note
+
 
 class BrainOfflineError(RuntimeError):
     pass
@@ -30,8 +32,10 @@ def split_sentences(text: str) -> tuple[list[str], str]:
     return [s for s in out if s], text[start:]
 
 def clean_speech(text: str) -> str:
+    # Piper speaks English only: anything past Latin Extended-B (Telugu,
+    # Devanagari, CJK, Arabic...) would be voiced as gibberish.
     kept = SPEECH_JUNK_RE.sub("", text)
-    kept = "".join(ch for ch in kept if ord(ch) < 0x2500)
+    kept = "".join(ch for ch in kept if ord(ch) <= LATIN_MAX)
     kept = " ".join(kept.split())
     return kept if any(ch.isalpha() for ch in kept) else ""
 

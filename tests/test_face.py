@@ -9,6 +9,7 @@ import pytest
 
 from mochi.face.engine import EMOTIONS, SIZE, MochiFace
 
+
 @pytest.fixture(scope="module")
 def screen():
     pg.init()

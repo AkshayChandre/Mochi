@@ -1,6 +1,7 @@
 from mochi.constants import EMOTIONS, STATE_EMOTION
 from mochi.voice.pipeline import State, VoicePipeline
 
+
 class Wake:
     def wait(self):
         return ""

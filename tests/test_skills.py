@@ -3,6 +3,7 @@ import time
 from mochi.desktop import app_name, context_note
 from mochi.skills import Skills, answer_screen, answer_time, parse_timer
 
+
 def test_parse_timer_units():
     assert parse_timer("set a timer for 5 minutes") == (300, "5 minutes")
     assert parse_timer("timer for 1 minute") == (60, "1 minute")
@@ -26,6 +27,29 @@ def test_time_and_date_answers():
     assert answer_time("what time is it") is not None
     assert "," in answer_time("what's the date today")
     assert answer_time("how are you") is None
+
+def test_time_in_another_country():
+    reply = answer_time("what is the time in india")
+    assert reply and "India" in reply
+    assert "London" in answer_time("what time is it in london")
+    assert answer_time("what time is it") is not None
+
+
+def test_language_request_declined_politely():
+    from mochi.skills import answer_language
+
+    assert "English" in answer_language("can you talk in telugu")
+    assert "English" in answer_language("speak hindi")
+    assert answer_language("what time is it") is None
+
+
+def test_non_latin_never_reaches_the_voice():
+    from mochi.brain.client import clean_speech
+
+    assert clean_speech("నమస్కారం") == ""
+    assert clean_speech("नमस्ते") == ""
+    assert clean_speech("Hello there") == "Hello there"
+
 
 def test_screen_answer_without_windows():
     reply = answer_screen("what am i working on")

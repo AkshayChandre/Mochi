@@ -13,6 +13,7 @@ from mochi.constants import (
     YES_WORDS,
 )
 
+
 class State(str, Enum):
     IDLE = "idle"
     LISTENING = "listening"

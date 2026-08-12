@@ -6,6 +6,7 @@ import pytest
 from mochi.brain import client as brain_client
 from mochi.brain.client import BrainClient, BrainOfflineError, split_sentences
 
+
 class FakeResponse(io.BytesIO):
     def __enter__(self):
         return self

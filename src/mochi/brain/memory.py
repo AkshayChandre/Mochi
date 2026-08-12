@@ -13,6 +13,7 @@ from mochi.constants import (
     REMEMBER_TRIGGERS,
 )
 
+
 class MemoryStore:
     def __init__(self, path: str = DB_PATH) -> None:
         self.conn = sqlite3.connect(path)
