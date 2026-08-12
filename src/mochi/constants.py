@@ -221,12 +221,15 @@ LATIN_MAX = 0x024F
 
 SPEECH_SECONDS_PER_CHAR = 0.03
 
+# listening is the resting state (Mochi is always listening), so it must be
+# calm; surprised here made the face flicker between surprised and neutral
 STATE_EMOTION = {
     "idle": "neutral",
-    "listening": "surprised",
+    "listening": "neutral",
     "thinking": "thinking",
     "speaking": "happy",
 }
+SLEEP_HOLD_STATES = ("idle", "listening")
 
 SAMPLE_RATE = 16000
 FRAME_SECONDS = 0.03

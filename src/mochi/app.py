@@ -13,6 +13,7 @@ from mochi.constants import (
     MEMORY_SAVED,
     RETRY_SECONDS,
     SIZE,
+    SLEEP_HOLD_STATES,
     STATE_EMOTION,
     STRANGER_GREETING,
 )
@@ -66,8 +67,9 @@ def make_apply(face: MochiFace, brain: BrainClient, sounds=None):
     def apply(state: State) -> None:
         if sounds is not None:
             sounds.on_state(state)
-        face.set_speaking(state == State.SPEAKING and brain.last_emotion != "sleeping")
-        if state == State.SPEAKING or (state == State.IDLE and brain.last_emotion == "sleeping"):
+        asleep = brain.last_emotion == "sleeping"
+        face.set_speaking(state == State.SPEAKING and not asleep)
+        if state == State.SPEAKING or (asleep and state.value in SLEEP_HOLD_STATES):
             emotion = brain.last_emotion
         else:
             emotion = STATE_EMOTION[state.value]
@@ -75,8 +77,10 @@ def make_apply(face: MochiFace, brain: BrainClient, sounds=None):
 
     return apply
 
-def make_intercept(face: MochiFace, memory, skills):
+def make_intercept(face: MochiFace, memory, skills, brain: BrainClient):
     def intercept(text: str) -> str | None:
+        if brain.last_emotion == "sleeping":
+            brain.last_emotion = "neutral"  # any speech wakes Mochi up
         low = text.lower()
         if "expression" in low or "emotion" in low:
             face.play_parade()
@@ -136,7 +140,7 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
         brain,
         tts,
         make_apply(face, brain, sounds),
-        make_intercept(face, memory, skills),
+        make_intercept(face, memory, skills, brain),
         face.show_card,
         memory,
     )

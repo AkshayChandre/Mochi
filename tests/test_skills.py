@@ -97,6 +97,14 @@ def test_app_name_strips_document_prefix():
     assert app_name("client.py - Mochi - Visual Studio Code") == "Visual Studio Code"
     assert app_name("Untitled") == "Untitled"
 
+
+def test_document_name_kept_for_context():
+    from mochi.desktop import document_name
+
+    assert document_name("client.py - Mochi - Visual Studio Code") == "Mochi"
+    assert document_name("Inbox (12) - Gmail") == "Inbox (12)"
+    assert document_name("Untitled") == ""
+
 def test_context_note_has_time():
     note = context_note()
     assert "It is" in note and ":" in note

@@ -26,6 +26,14 @@ def app_name(title: str) -> str:
     # window titles are usually "document - App Name"
     return title.rsplit(" - ", 1)[-1].strip() if " - " in title else title
 
+
+def document_name(title: str) -> str:
+    """Everything before the app name: the file, page, or chat you are on."""
+    if " - " not in title:
+        return ""
+    head = title.rsplit(" - ", 1)[0].strip()
+    return head.rsplit(" - ", 1)[-1].strip() if " - " in head else head
+
 def context_note() -> str:
     now = datetime.now()
     parts = [f"It is {now:%A %d %B %Y, %I:%M %p}."]

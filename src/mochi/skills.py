@@ -21,7 +21,7 @@ from mochi.constants import (
     TIMER_RE,
     TIMER_UNITS,
 )
-from mochi.desktop import active_window, app_name
+from mochi.desktop import active_window, app_name, document_name
 
 
 def parse_timer(text: str) -> tuple[int, str] | None:
@@ -70,7 +70,8 @@ def answer_screen(text: str) -> str | None:
     title = active_window()
     if not title:
         return "I can't see your screen right now."
-    return f"You're in {app_name(title)}."
+    doc = document_name(title)
+    return f"You're in {app_name(title)}, on {doc}." if doc else f"You're in {app_name(title)}."
 
 
 def answer_farewell(text: str) -> str | None:
