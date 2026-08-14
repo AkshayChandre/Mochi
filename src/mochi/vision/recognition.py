@@ -68,12 +68,16 @@ class Recognizer:
         if not self.cam.isOpened():
             raise RuntimeError(f"no camera at index {CAMERA_INDEX} (see constants.CAMERA_INDEX)")
 
-    def embedding(self) -> np.ndarray | None:
+    def frame(self) -> np.ndarray | None:
         with self.lock:
-            for _ in range(3):
+            for _ in range(3):  # drop buffered stale frames
                 self.cam.grab()
             ok, frame = self.cam.read()
-        if not ok:
+        return frame if ok else None
+
+    def embedding(self) -> np.ndarray | None:
+        frame = self.frame()
+        if frame is None:
             return None
         faces = self.app.get(frame)
         if not faces:

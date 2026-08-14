@@ -117,6 +117,25 @@ AGENDA_BAD_TIME = "I need a real date and time for that one."
 AGENDA_DROPPED = "Removed {count} event{s}."
 AGENDA_NOT_FOUND = "I don't have anything like that on the calendar."
 
+# Sight. Small vision models are slow and the owner is waiting. Past about
+# this long the answer has stopped being conversational, so admitting it
+# beats holding the room silent.
+VISION_TIMEOUT = 45
+# keep_alive governs the idle unload only. It does NOT stop ollama evicting
+# this to make room for the next model, so where chat and vision do not both
+# fit, the answering pass reclaims this the moment a look returns and the
+# hold buys nothing. Long enough to cover a follow-up look, short enough to
+# give the VRAM back before the conversation carries on.
+VISION_KEEP_ALIVE = "30s"
+VISION_OPTIONS = {"temperature": 0.2, "num_predict": 80}
+SIGHT_WIDTH = 640
+JPEG_QUALITY = 80
+SIGHT_BLIND = "I can't see anything - my camera isn't working."
+SIGHT_OFFLINE = "My eyes aren't responding right now."
+SIGHT_NOTHING = "I looked, but I can't make anything out."
+SIGHT_MISSING = "My eyes aren't installed yet. Someone needs to run: ollama pull {model}"
+BRAIN_OFFLINE_SPOKEN = "I can't reach my brain right now. I'll keep trying."
+
 WORLD_TIMEOUT = 6
 USER_AGENT = "Mochi/0.1 (open-source desk robot)"
 OFFLINE_REPLY = "I couldn't reach the internet just now."
@@ -314,6 +333,12 @@ BRAIN_TIMEOUT = 120
 MAX_HISTORY = 24
 HISTORY_KEEP = 12
 KEEP_ALIVE = "24h"
+# One round answers most turns. The cap is what stops a model that keeps
+# calling tools from spinning the conversation forever.
+MAX_TOOL_ROUNDS = 3
+# Said out loud before a tool slow enough that the silence reads as broken.
+# Only sight qualifies; the world tools answer in seconds.
+TOOL_WAIT_LINES = {"look": "Let me have a look."}
 # at ~4 tok/s on CPU every allowed token is a quarter second of the owner
 # waiting, so the ceiling is a latency setting as much as a style one
 BRAIN_OPTIONS = {"num_ctx": 4096, "temperature": 0.7, "num_predict": 140}
@@ -322,6 +347,11 @@ BRAIN_OPTIONS = {"num_ctx": 4096, "temperature": 0.7, "num_predict": 140}
 # "first word at" number in the log when tuning this.
 CLAUSE_MIN_CHARS = 14
 NOW_NOTE = "Today is {today}."
+TOOLLESS_MODEL = (
+    "{model} cannot call tools, so Mochi has no reminders, calendar, weather "
+    "or sight with it ({detail}). Pick a tool-capable model in config.yaml - "
+    "qwen2.5:3b and llama3.1:8b both work - or run: ollama pull qwen2.5:3b"
+)
 
 # Chat that needs no tool, then one prompt per tool family. A model that is
 # fast but scores badly here has stopped being useful.
@@ -345,12 +375,15 @@ SYSTEM_PROMPT = (
     f"{OWNER_NAME} is your owner. A system note may tell you who is with you "
     "right now; greet and address that person by name. "
     "You hear through a microphone and speak out loud; you have a screen face. "
-    "Your camera is used only to recognize who is present. You cannot see "
-    "objects, gestures, screens, or anything else, so never claim to. When a "
+    "Your camera recognizes who is present, and the look tool lets you "
+    "actually see through it. You have no continuous vision: you see only at "
+    "the moment you call look, so never claim to have been watching, and "
+    "never describe anything you have not just looked at. When a "
     "system note names who is with you, you DO recognize that person. "
     "You have tools for the time, the owner's screen, reminders, countdowns, "
-    "memory, expressions, nodding and shaking your head, the owner's "
-    "calendar, real weather, today's headlines, and looking up facts. Call a "
+    "memory, expressions, nodding and shaking your head, your eyes, the "
+    "owner's calendar, real weather, today's headlines, and looking up "
+    "facts. Call a "
     "tool when you need a real fact or a real action, never guess one. Do "
     "not mention tools, and do not volunteer facts nobody asked for. "
     "You are told today's date before every message: use it to work out "

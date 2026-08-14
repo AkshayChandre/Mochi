@@ -6,6 +6,59 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- "brain unreachable" was reported for every kind of failure, including
+  ones where Ollama answered perfectly well. `HTTPError` subclasses
+  `URLError`, so a model that cannot call tools, a model that was never
+  pulled, and a runner that crashed all arrived looking like a dead
+  server, and the owner was told nothing they could act on. Each now
+  says which it was and quotes Ollama; a model without tool support
+  names itself and suggests one that works. The same blind spot in
+  sight meant a missing vision model reported as "my eyes aren't
+  responding" - it now says which model to pull.
+- When the brain went down Mochi just fell silent, which looks identical
+  to being broken. It now says so out loud once, then retries quietly.
+- Only the first round of tool calls ever ran. `stream()` clears the call
+  list at the start of every pass, so when answering needed a second tool -
+  look at this, then remember it - that call was collected and thrown away.
+  Where the second round was the whole reply, Mochi performed the action and
+  then said nothing at all. Rounds now run in a loop, capped so a model that
+  keeps calling tools cannot hold the conversation open forever.
+- Tool calls and their results never reached the conversation history; they
+  lived only in the message list for the turn that made them. The turn after
+  a look had no record of what was looked at, so "what colour was it?" was
+  answered from nothing. They are kept now, and trimming will not cut a tool
+  result away from the call above it.
+- Sight went quiet for up to ninety seconds with nothing said, which is
+  indistinguishable from being broken. Mochi says it is looking before it
+  looks, and the timeout is down to forty-five seconds - past that the
+  answer has stopped being conversational.
+- The comment claiming a five minute `keep_alive` kept the vision model
+  resident was wrong. `keep_alive` governs the idle unload and does not stop
+  ollama evicting a model to make room for the next one, so on a card where
+  chat and vision do not both fit, the answering pass reclaims it the moment
+  a look returns and the long hold bought nothing. Thirty seconds now, which
+  covers a follow-up look and gives the memory back after.
+
+### Added
+- Sight. A `look` tool sends one camera frame to a local vision model and
+  answers questions about it: what something is, what the owner is
+  holding, what is in the room, what a label says, how many of something
+  there are. One tool covers all of it because the owner's own question
+  is passed straight through to the model.
+  - On demand only: a frame is captured when the tool is called and at no
+    other time. No recording, no buffer, no background watching, and the
+    prompt forbids describing anything not just looked at.
+  - Shares the existing camera handle and lock with face recognition
+    instead of opening a second capture.
+  - Model set in `config.yaml` under `vision.model`, default `moondream`
+    so it runs on ~2GB cards; `qwen2.5vl:3b` or `gemma3:4b` where there
+    is room. Kept resident 5 minutes so a run of questions pays the load
+    cost once.
+  - Every failure - no camera, dead frame, model not pulled, host down -
+    comes back as a sentence Mochi can say rather than an exception, so
+    it admits it cannot see instead of inventing a room.
+
 ### Added
 - Calendar: Mochi keeps its own events in `mochi.db` (`add_event`,
   `list_events`, `cancel_event`). No account, no OAuth, works offline.

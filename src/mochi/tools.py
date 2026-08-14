@@ -15,6 +15,7 @@ from mochi.constants import (
     COUNTDOWN_MAX,
     DEGREES_RE,
     OWNER_CITY,
+    SIGHT_BLIND,
 )
 
 
@@ -100,6 +101,18 @@ TOOLS = [
         "Real current weather. Leave the place empty for where the owner lives.",
         place={"type": "string", "description": "city or country, empty for home"},
     ),
+    spec(
+        "look",
+        "Look through your camera and answer a question about what you see. Use it "
+        "for what something is, what the owner is holding or wearing, what is around "
+        "you, reading text held up to you, and counting things. Pass the owner's own "
+        "question through. Your eyes are small: hedge on counts and fine detail.",
+        question={
+            "type": "string",
+            "description": "what to work out from the picture",
+            "required": True,
+        },
+    ),
     spec("news", "Today's real headlines, when asked what is happening in the world."),
     spec(
         "look_up",
@@ -114,12 +127,15 @@ class Toolbox:
     """Executes what the model decides to do. No intent parsing lives here:
     the model picks the tool, this just runs it."""
 
-    def __init__(self, skills, sensors, memory=None, face=None, agenda=None) -> None:
+    def __init__(
+        self, skills, sensors, memory=None, face=None, agenda=None, eyes=None
+    ) -> None:
         self.skills = skills
         self.sensors = sensors
         self.memory = memory
         self.face = face
         self.agenda = agenda
+        self.eyes = eyes
 
     def get_time(self, place: str = "") -> str:
         when, where = self.sensors.clock(place)
@@ -208,6 +224,13 @@ class Toolbox:
         if self.face and (hit := DEGREES_RE.search(report)):
             self.face.show_banner(hit.group(1) + "°")
         return report
+
+    def look(self, question: str) -> str:
+        if not self.eyes:
+            return SIGHT_BLIND
+        if self.face:
+            self.face.set_emotion("curious")  # eyes widen while it peers
+        return self.eyes.look(question)
 
     def news(self) -> str:
         return world.headlines()

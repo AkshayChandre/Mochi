@@ -65,6 +65,10 @@ class FakeFace:
     def __init__(self):
         self.gesture = None
         self.banner = None
+        self.emotion = None
+
+    def set_emotion(self, name):
+        self.emotion = name
 
     def play_gesture(self, kind):
         if kind not in ("nod", "shake"):
@@ -124,3 +128,31 @@ def test_weather_with_no_place_uses_home(monkeypatch):
 
     monkeypatch.setattr(tools_mod.world, "weather", lambda p: p)
     assert box().run("weather", {}) == OWNER_CITY
+
+class FakeEyes:
+    def __init__(self, answer="A blue mug."):
+        self.answer = answer
+        self.asked = []
+
+    def look(self, question):
+        self.asked.append(question)
+        return self.answer
+
+
+def test_look_tool_passes_the_question_to_the_eyes():
+    eyes, face = FakeEyes(), FakeFace()
+    tb = box(eyes=eyes, face=face)
+    assert tb.run("look", {"question": "what am I holding?"}) == "A blue mug."
+    assert eyes.asked == ["what am I holding?"]
+
+
+def test_look_without_a_camera_says_so():
+    from mochi.constants import SIGHT_BLIND
+
+    assert box().run("look", {"question": "what is this"}) == SIGHT_BLIND
+
+
+def test_look_makes_the_face_peer():
+    face = FakeFace()
+    box(eyes=FakeEyes(), face=face).run("look", {"question": "what"})
+    assert face.emotion == "curious"

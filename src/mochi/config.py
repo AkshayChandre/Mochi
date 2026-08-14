@@ -12,18 +12,20 @@ class Connections:
     brain_host: str = "127.0.0.1"
     brain_port: int = 11434
     llm_model: str = "qwen2.5:3b"
+    vision_model: str = "moondream"
 
 def load(path: str | None = None) -> Connections:
     file = Path(path or os.environ.get("MOCHI_CONFIG", "config.yaml"))
     if not file.is_file():
         return Connections()
     raw = yaml.safe_load(file.read_text()) or {}
-    brain = raw.get("brain", {})
+    brain, vision = raw.get("brain", {}), raw.get("vision", {})
     base = Connections()
     return Connections(
         brain_host=brain.get("host", base.brain_host),
         brain_port=brain.get("port", base.brain_port),
         llm_model=brain.get("model", base.llm_model),
+        vision_model=vision.get("model", base.vision_model),
     )
 
 CONNECTIONS = load()

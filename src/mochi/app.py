@@ -10,6 +10,7 @@ from mochi.agenda import Agenda
 from mochi.alive import Ambient
 from mochi.brain.client import BrainClient, BrainOfflineError
 from mochi.constants import (
+    BRAIN_OFFLINE_SPOKEN,
     BUSY_STATES,
     CURSE_LINES,
     CURSE_RE,
@@ -28,6 +29,7 @@ from mochi.desktop import context_note
 from mochi.face.engine import MochiFace
 from mochi.skills import Skills
 from mochi.tools import Toolbox
+from mochi.vision.sight import Eyes
 from mochi.voice.pipeline import State, VoicePipeline
 
 
@@ -114,7 +116,7 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
     brain.store = store
     memory = Memory(brain, store)
     watch = {"state": State.IDLE, "heard": False}
-    presence = None
+    presence = eyes = None
     try:
         from mochi.voice.sounds import BOOT_SOUND, RobotSounds
         from mochi.voice.stt import WhisperTranscriber
@@ -129,6 +131,8 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
             wake = VisionWake(presence, brain)
             stt = VisionStt(stt, presence, brain)
             print("vision: face recognition active")
+            eyes = Eyes(presence.rec)  # same camera, same lock
+            print(f"vision: sight via {eyes.model}")
         except Exception as verr:
             print(f"vision unavailable: {verr} - running without recognition")
         sounds.play(BOOT_SOUND)
@@ -154,7 +158,7 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
         brain.last_emotion = emotion
 
     skills = Skills(announce, set_mood, face.show_count)
-    brain.toolbox = Toolbox(skills, LocalSensors(), memory, face, Agenda())
+    brain.toolbox = Toolbox(skills, LocalSensors(), memory, face, Agenda(), eyes)
     ambient = Ambient(
         lambda line, emotion: (set_mood(emotion), announce(line, emotion)),
         presence,
@@ -178,12 +182,19 @@ def start_voice(face: MochiFace) -> None:
 
     def loop() -> None:
         pipeline = build_pipeline(face, brain)
+        complained = False
         while True:
             try:
                 pipeline.run()
+                complained = False
             except BrainOfflineError as err:
                 print(f"brain offline, retrying: {err}")
                 face.set_emotion("error")
+                if not complained:
+                    # going silent looks identical to being broken; say it
+                    # once, then stop nagging while it retries
+                    complained = True
+                    pipeline.speak(BRAIN_OFFLINE_SPOKEN)
                 time.sleep(RETRY_SECONDS)
             except Exception as err:
                 print(f"recovered from: {err!r}")

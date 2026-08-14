@@ -4,7 +4,7 @@ import json
 import time
 from collections.abc import Iterator
 from datetime import datetime
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from mochi.config import CONNECTIONS
@@ -19,15 +19,33 @@ from mochi.constants import (
     KEEP_ALIVE,
     LATIN_MAX,
     MAX_HISTORY,
+    MAX_TOOL_ROUNDS,
     NOW_NOTE,
     SPEECH_JUNK_RE,
     SYSTEM_PROMPT,
+    TOOL_WAIT_LINES,
+    TOOLLESS_MODEL,
 )
 from mochi.tools import TOOLS
 
 
 class BrainOfflineError(RuntimeError):
     pass
+
+def explain(err: Exception, url: str, model: str) -> str:
+    """HTTPError is a subclass of URLError, so ollama answering 'that model
+    does not support tools' used to arrive looking exactly like a dead
+    server. Say which one it actually was, and quote ollama."""
+    if isinstance(err, HTTPError):
+        try:
+            detail = json.loads(err.read()).get("error", "")
+        except (OSError, ValueError, AttributeError):
+            detail = ""
+        detail = " ".join(detail.split())[:200] or err.reason
+        if "does not support tools" in detail:
+            return TOOLLESS_MODEL.format(model=model, detail=detail)
+        return f"{model}: ollama said {err.code}, {detail}"
+    return f"brain unreachable at {url} ({err})"
 
 def split_sentences(text: str, eager: bool = False) -> tuple[list[str], str]:
     """eager breaks the first chunk at a comma so Mochi starts talking a
@@ -103,7 +121,12 @@ class BrainClient:
         return Request(self.url, json.dumps(payload).encode(), {"Content-Type": "application/json"})
 
     def apply_tools(self, msgs: list[dict], calls: list[dict]) -> None:
-        msgs.append({"role": "assistant", "content": "", "tool_calls": calls})
+        """Both lists get the call and its result. msgs is what this turn
+        sends; history is what the next turn remembers, and without it
+        'what colour was it?' has nothing behind it to look at."""
+        asked = {"role": "assistant", "content": "", "tool_calls": calls}
+        msgs.append(asked)
+        self.history.append(asked)
         for call in calls:
             fn = call.get("function", {})
             name = fn.get("name", "")
@@ -111,7 +134,15 @@ class BrainClient:
             result = self.toolbox.run(name, args)
             if self.verbose:
                 print(f"tool {name}({args}) -> {result}")
-            msgs.append({"role": "tool", "name": name, "content": result})
+            answered = {"role": "tool", "name": name, "content": result}
+            msgs.append(answered)
+            self.history.append(answered)
+
+    def waiting_line(self, calls: list[dict]) -> str:
+        for call in calls:
+            if line := TOOL_WAIT_LINES.get(call.get("function", {}).get("name", "")):
+                return line
+        return ""
 
     def mark_first(self) -> None:
         if not self.first_word:
@@ -153,7 +184,15 @@ class BrainClient:
         self.first_word = 0.0
         started = self.turn_started = time.monotonic()
         yield from self.stream(msgs)
-        if self.calls:  # the model acted first; now let it speak about it
+        rounds = 0
+        # the model acted first; now let it speak about it - and act again if
+        # answering turned out to need a second tool, which used to be
+        # collected and then silently dropped
+        while self.calls and rounds < MAX_TOOL_ROUNDS:
+            rounds += 1
+            if line := self.waiting_line(self.calls):
+                self.mark_first()
+                yield line
             self.apply_tools(msgs, self.calls)
             yield from self.stream(msgs)
         if self.verbose:
@@ -236,7 +275,7 @@ class BrainClient:
         except (URLError, OSError) as err:
             if self.history and self.history[-1]["role"] == "user":
                 self.history.pop()
-            raise BrainOfflineError(f"brain unreachable at {self.url}") from err
+            raise BrainOfflineError(explain(err, self.url, self.model)) from err
         if in_fence and fence_buf.strip():
             self.last_blocks.append(clean_block(fence_buf))
         if tail := clean_speech(speak_buf):
@@ -298,5 +337,10 @@ class BrainClient:
         return buffer, True
 
     def trim(self) -> None:
-        if len(self.history) > MAX_HISTORY:
-            self.history = [self.history[0], *self.history[-HISTORY_KEEP:]]
+        if len(self.history) <= MAX_HISTORY:
+            return
+        kept = self.history[-HISTORY_KEEP:]
+        # a tool result whose call got cut off above it is a 400 from ollama
+        while kept and kept[0]["role"] == "tool":
+            kept.pop(0)
+        self.history = [self.history[0], *kept]
