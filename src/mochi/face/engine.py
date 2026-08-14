@@ -10,6 +10,8 @@ import pygame as pg
 from mochi.constants import (
     AUTOPILOT_INTERVAL,
     BACKGROUND,
+    BANNER_MARGIN,
+    BANNER_SECONDS,
     BEZEL,
     BLINK_INTERVAL,
     BLINK_SPEED,
@@ -32,6 +34,7 @@ from mochi.constants import (
     CARD_SECONDS,
     CARD_WRAP,
     COLOR_EASE_RATE,
+    COUNT_FONT,
     DOUBLE_BLINK_CHANCE,
     DOUBLE_BLINK_DELAY,
     EASE_RATE,
@@ -43,6 +46,10 @@ from mochi.constants import (
     FPS,
     GAZE_LERP_RATE,
     GAZE_RANGE,
+    GESTURE_AMP,
+    GESTURE_FREQ,
+    GESTURE_SECONDS,
+    GESTURES,
     GLINT_COLOR,
     IDLE_SLEEP_SECONDS,
     MOUTH_DEPTH,
@@ -65,6 +72,11 @@ from mochi.constants import (
     TALK_AMP,
     TALK_BASE,
     TALK_FREQ,
+    TALK_LIP,
+    TALK_NARROW,
+    TALK_OPEN,
+    TALK_WIDTH,
+    TALK_WOBBLE,
     TEAR_COLOR,
     TEAR_FALL,
     TEAR_PERIOD,
@@ -106,6 +118,10 @@ def star_points(cx: float, cy: float, size: float, spikes: int = 4) -> list[tupl
         pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
     return pts
 
+def talk_openness(t: float) -> float:
+    wave = sum(w * math.sin(t * TALK_FREQ * m + p) for m, w, p in TALK_WOBBLE)
+    return max(0.0, min(1.0, TALK_BASE + TALK_AMP * wave))
+
 class MochiFace:
     def __init__(self) -> None:
         self.emotion = "neutral"
@@ -119,6 +135,8 @@ class MochiFace:
         self.blink_phase = "idle"
         self.next_blink = random.uniform(*BLINK_INTERVAL)
         self.speaking = False
+        self.allowed = False
+        self.voice = None
         self.idle_since = 0.0
         self.parade: list[str] = []
         self.parade_t = 0.0
@@ -126,6 +144,12 @@ class MochiFace:
         self.card_until = 0.0
         self.card_started = 0.0
         self.card_scroll = 0.0
+        self.count_text = ""
+        self.count_until = 0.0
+        self.banner_text = ""
+        self.banner_until = 0.0
+        self.gesture = ""
+        self.gesture_until = 0.0
         self.fonts: dict[int, pg.font.Font] = {}
         self.t = 0.0
 
@@ -137,11 +161,34 @@ class MochiFace:
             self.idle_since = self.t
 
     def set_speaking(self, speaking: bool) -> None:
-        self.speaking = speaking
+        """Permission to talk. When a real voice is attached the mouth also
+        needs actual audio, otherwise it mimes through the long gaps while
+        the model is still writing the next sentence."""
+        self.allowed = speaking
+        if self.voice is None:
+            self.speaking = speaking
 
     def play_parade(self) -> None:
         self.parade = [*EMOTION_KEYS, "neutral"]
         self.parade_t = 0.0
+
+    def play_gesture(self, kind: str) -> None:
+        if kind not in GESTURES:
+            raise ValueError(f"unknown gesture {kind!r}")
+        self.gesture = kind
+        self.gesture_until = self.t + GESTURE_SECONDS
+        self.idle_since = self.t
+
+    def show_banner(self, text: str) -> None:
+        """Big text under the eyes - the face keeps being a face."""
+        self.banner_text = " ".join(text.split())[:64]
+        self.banner_until = self.t + BANNER_SECONDS
+        self.idle_since = self.t
+
+    def show_count(self, text: str) -> None:
+        self.count_text = text
+        self.count_until = self.t + 1.4
+        self.idle_since = self.t
 
     def show_card(self, text: str) -> None:
         lines: list[str] = []
@@ -163,6 +210,8 @@ class MochiFace:
 
     def update(self, dt: float, mouse_gaze: pg.Vector2 | None = None) -> None:
         self.t += dt
+        if self.voice is not None:
+            self.speaking = self.allowed and self.voice()
         if self.card_lines:
             if self.t >= self.card_until:
                 self.card_lines = []
@@ -225,6 +274,9 @@ class MochiFace:
                 self.next_blink = DOUBLE_BLINK_DELAY if double else random.uniform(*BLINK_INTERVAL)
 
     def draw(self, screen: pg.Surface) -> None:
+        if self.count_text and self.t < self.count_until:
+            self.draw_count(screen)
+            return
         card = bool(self.card_lines) and self.t < self.card_until
         s = self.state
         scale = 0.5 if card else 1.0
@@ -247,6 +299,13 @@ class MochiFace:
         gy = self.gaze.y * GAZE_RANGE[1] + bounce_y
         if s["shake"] > 0.02:
             gx += math.sin(self.t * SHAKE_FREQ) * SHAKE_AMP * s["shake"]
+        if self.gesture and self.t < self.gesture_until:
+            left = self.gesture_until - self.t
+            swing = math.sin(left * GESTURE_FREQ) * GESTURE_AMP * (left / GESTURE_SECONDS)
+            if self.gesture == "nod":
+                gy += swing
+            else:
+                gx += swing
 
         style = EMOTIONS[self.emotion].style
         centers: list[tuple[float, float]] = []
@@ -301,16 +360,18 @@ class MochiFace:
                 bob = math.sin(self.t * 2 + i) * 6
                 screen.blit(z, (cx + 118 + i * 24, cy - 70 - i * 30 + bob))
 
+        if self.banner_text and self.t < self.banner_until:
+            self.draw_banner(screen, color)
+
         mouth_y = cy + MOUTH_OFFSET_Y + gy * 0.4
-        if s["mouth_open"] > 0.05 and not self.speaking:
+        if self.speaking:
+            self.draw_talking(screen, cx, mouth_y, talk_openness(self.t), color)
+        elif s["mouth_open"] > 0.05:
             rw = int(MOUTH_HALF_WIDTH * s["mouth_open"])
             rh = int(MOUTH_HALF_WIDTH * 1.3 * s["mouth_open"])
             pg.draw.ellipse(screen, color, (cx - rw / 2, mouth_y - rh / 2, rw, rh))
         else:
-            mouth_val = s["mouth"]
-            if self.speaking:
-                mouth_val = TALK_BASE + TALK_AMP * math.sin(self.t * TALK_FREQ)
-            self.draw_mouth(screen, cx, mouth_y, mouth_val, color)
+            self.draw_mouth(screen, cx, mouth_y, s["mouth"], color)
 
     def draw_x_eye(self, screen, center, w, color, scale=1.0) -> None:
         arm = w / 2
@@ -373,6 +434,29 @@ class MochiFace:
         if radius > 1:
             pg.draw.circle(screen, TEAR_COLOR, (int(x), int(y)), radius)
 
+    def fit_font(self, text: str, width: float, largest: int) -> pg.font.Font:
+        for size in range(largest, 13, -5):
+            if self.font(size).size(text)[0] <= width:
+                return self.font(size)
+        return self.font(14)
+
+    def draw_banner(self, screen: pg.Surface, color: tuple) -> None:
+        left = self.banner_until - self.t
+        font = self.fit_font(self.banner_text, SIZE * BANNER_MARGIN, 74)
+        glyph = font.render(self.banner_text, True, color)
+        if left < 0.4:  # fade out instead of vanishing
+            glyph.set_alpha(int(255 * left / 0.4))
+        screen.blit(glyph, glyph.get_rect(center=(SIZE / 2, SIZE * 0.84)))
+
+    def draw_count(self, screen: pg.Surface) -> None:
+        screen.fill(BACKGROUND)
+        left = max(0.0, self.count_until - self.t)
+        scale = 1.0 + 0.18 * left  # each number lands with a pop
+        color = EMOTION_COLORS["excited"] if self.count_text != "0" else EMOTION_COLORS["happy"]
+        glyph = self.font(COUNT_FONT).render(self.count_text, True, color)
+        glyph = pg.transform.rotozoom(glyph, 0, min(1.25, scale))
+        screen.blit(glyph, glyph.get_rect(center=(SIZE / 2, SIZE / 2)))
+
     def draw_code_panel(self, screen: pg.Surface, color: tuple) -> None:
         top = int(SIZE * CARD_PANEL_TOP)
         rect = pg.Rect(20, top, SIZE - 40, SIZE - top - 20)
@@ -384,6 +468,19 @@ class MochiFace:
         for i, line in enumerate(self.card_lines):
             screen.blit(f.render(line, True, TERMINAL_FG), (rect.x + 16, y0 + i * CARD_LINE_H))
         screen.set_clip(None)
+
+    @staticmethod
+    def draw_talking(screen: pg.Surface, cx: float, cy: float, wide: float, color: tuple) -> None:
+        """A jaw, not a wiggling line: the mouth narrows as it opens, the way
+        a real one does, and never shuts fully mid-word."""
+        w = MOUTH_HALF_WIDTH * (TALK_WIDTH - TALK_NARROW * wide)
+        h = MOUTH_THICKNESS + MOUTH_HALF_WIDTH * TALK_OPEN * wide
+        pg.draw.ellipse(screen, color, (cx - w / 2, cy - h / 2, w, h))
+        if h > TALK_LIP * 3:  # a darker gap once it is properly open
+            gap = (w - TALK_LIP * 2, h - TALK_LIP * 2)
+            pg.draw.ellipse(
+                screen, BACKGROUND, (cx - gap[0] / 2, cy - gap[1] / 2, gap[0], gap[1])
+            )
 
     @staticmethod
     def draw_mouth(screen: pg.Surface, cx: float, cy: float, mouth: float, color: tuple) -> None:

@@ -4,10 +4,20 @@ import ctypes
 import sys
 from datetime import datetime
 
-from mochi.constants import WINDOW_TITLE_MAX
+from mochi.constants import OWN_WINDOW_PREFIX, WINDOW_TITLE_MAX
 
+_last_other = ""
 
 def active_window() -> str:
+    """Mochi's own window is skipped: when you talk to it, its window is
+    often focused, and 'you're in Mochi' is useless."""
+    title = foreground_window()
+    global _last_other
+    if title and not title.startswith(OWN_WINDOW_PREFIX):
+        _last_other = title
+    return _last_other
+
+def foreground_window() -> str:
     if not sys.platform.startswith("win"):
         return ""
     try:
@@ -25,7 +35,6 @@ def active_window() -> str:
 def app_name(title: str) -> str:
     # window titles are usually "document - App Name"
     return title.rsplit(" - ", 1)[-1].strip() if " - " in title else title
-
 
 def document_name(title: str) -> str:
     """The file or page, which apps put FIRST: 'README.md - Mochi - VS Code'."""

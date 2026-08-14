@@ -28,6 +28,26 @@ tests/         headless test suite (pytest)
 hardware/      BOM, wiring, CAD/STL files
 ```
 
+### What Mochi can do
+
+The model decides when to act; there is no keyword matching anywhere.
+Ask in whatever words you like.
+
+| | |
+|---|---|
+| Time and date | any city or country |
+| Your screen | which app and file you're looking at |
+| Reminders | "remind me to stretch in 20 minutes", plus list and cancel |
+| Countdowns | counted out loud, on the face |
+| Calendar | add, list and cancel events - local, offline, no account |
+| Weather | anywhere, live (Open-Meteo) |
+| News | today's headlines (RSS feeds you choose in `constants.py`) |
+| Lookups | real facts from Wikipedia rather than guesses |
+| Memory | remembers you, per person, with your spoken permission |
+| Face | 22 emotions, nods, shakes its head, shows code and banners |
+
+Adding a capability is a tool spec plus a method - see `src/mochi/tools.py`.
+
 Development standards: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Controls
@@ -41,6 +61,59 @@ Development standards: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Press **M** and move your mouse around - that's the presence effect the whole
 project is built on.
+
+### Brain speed
+
+Mochi prints what the model is actually doing on every reply:
+
+```
+first word at 3.2s | reply took 9.1s | read 2000 tok in 2.5s | wrote 28 tok in 7.0s (4.0 tok/s)
+```
+
+- **first word** is the silence you actually sit through.
+- **read** should stay cheap after the first turn. If it costs seconds
+  every turn, the prompt cache is being thrown away.
+- **tok/s** is the floor. Nothing in this repo can move it.
+
+Under ~10 tok/s the robot feels like a form, not a friend. `ollama ps`
+shows where the model landed; the PROCESSOR column is the split. Ollama
+falls back to CPU silently, and a model only goes fast if the **whole**
+thing fits in free VRAM, weights plus context:
+
+| Model | Needs free VRAM | Notes |
+|---|---|---|
+| `qwen2.5:7b` | ~5.5 GB | best tool calling, the default |
+| `qwen2.5:3b` | ~2.5 GB | still calls tools reliably, much faster |
+| `qwen2.5:1.5b` | ~1.5 GB | fast, but tool calling gets unreliable |
+
+Partial offload is the worst case: it pays the transfer cost and gets
+none of the speed. Prefer a smaller model that fits entirely over a
+bigger one that half fits.
+
+Don't take the table's word for it - measure on your own machine:
+
+```powershell
+ollama pull qwen2.5:3b
+ollama pull qwen2.5:1.5b
+mochi-bench qwen2.5:7b qwen2.5:3b qwen2.5:1.5b
+```
+
+```
+model                   first word    tok/s   tokens/reply   tools
+qwen2.5:1.5b                  0.7s     28.0             30     4/6
+qwen2.5:3b                    1.6s      9.5             32     6/6
+qwen2.5:7b                    3.4s      4.0             45     6/6
+```
+
+The **tools** column is the one that decides it. Every capability Mochi
+has arrives through a tool call, so a model that scores 4/6 has stopped
+being Mochi no matter how fast it is. Take the quickest model that still
+scores full marks, and set it in `config.yaml`:
+
+```yaml
+brain:
+  model: qwen2.5:3b
+```
 
 ### Enable audio (talking Mochi)
 
@@ -76,6 +149,20 @@ pip install nvidia-cublas-cu12 nvidia-cudnn-cu12
 # then set WHISPER_DEVICE = "cuda" in constants.py
 ```
 
+### How Mochi decides things
+
+The model drives. It is given tools - the clock, the owner's screen,
+reminders, countdowns, memory, expressions, sleep - and calls them when
+it needs a real fact or a real action. There is no keyword matching on
+what you say, and nothing is force-fed into the prompt: Mochi looks
+things up only when they matter, so it stops reciting the date and your
+saved facts unprompted. Tools need a model that can call them; the
+default is `qwen2.5:7b` (`ollama pull qwen2.5:7b`).
+
+Senses live behind `mochi/context.py`. `LocalSensors` reads this
+machine; when the brain moves to a server, a laptop agent implementing
+the same two methods reports over the network and no other code changes.
+
 ### Desktop awareness
 
 Mochi knows the time and which window is focused, so "what time is it",
@@ -83,6 +170,19 @@ Mochi knows the time and which window is focused, so "what time is it",
 instantly and locally, without asking the LLM. Timers speak up on their
 own when they finish. The same context is passed to the brain each turn,
 so it can reason about your day without guessing.
+
+### Living on its own
+
+Mochi is not only reactive. A background loop watches the room and speaks
+first: it gets shy if you stare too long, welcomes you back after you have
+been away, checks in when the room has been quiet, and suggests a break
+after a marathon session. Every trigger has a cooldown, and Mochi stays
+silent while a conversation is running. Timings live in `constants.py`
+(`STARE_SECONDS`, `QUIET_SECONDS`, `WORK_SESSION_SECONDS`).
+
+Reminders and countdowns are real: "remind me to drink water in a min"
+announces the task itself when it fires, and "count down from 10" is
+spoken one number per second, not all at once.
 
 ### Memory
 

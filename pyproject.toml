@@ -38,6 +38,7 @@ mochi = "mochi.app:main"
 mochi-face = "mochi.face.engine:main"
 mochi-voice = "mochi.voice.console:main"
 mochi-vision = "mochi.vision.recognition:main"
+mochi-bench = "mochi.bench:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -16,7 +16,7 @@ from mochi.constants import (
 
 class MemoryStore:
     def __init__(self, path: str = DB_PATH) -> None:
-        self.conn = sqlite3.connect(path)
+        self.conn = sqlite3.connect(path, check_same_thread=False)
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS memories ("
             "id INTEGER PRIMARY KEY, person TEXT, fact TEXT, "

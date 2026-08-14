@@ -116,3 +116,95 @@ def test_mouse_gaze_tracks_target(screen):
     for _ in range(120):
         face.update(1 / 60, target)
     assert face.gaze.distance_to(target) < 0.05
+
+def _render(screen, frames, setup=None):
+    """Blinks and gaze wander are random, so seed to make two runs comparable."""
+    random.seed(7)
+    face = MochiFace()
+    if setup:
+        setup(face)
+    for _ in range(frames):
+        face.update(1 / 60)
+    face.draw(screen)
+    return pg.image.tostring(screen, "RGB")
+
+def test_render_is_deterministic_when_seeded(screen):
+    assert _render(screen, 12) == _render(screen, 12)
+
+def test_gesture_moves_the_eyes_then_settles(screen):
+    mid = _render(screen, 12, lambda f: f.play_gesture("nod"))
+    assert mid != _render(screen, 12), "nod never moved anything"
+    after = _render(screen, 70, lambda f: f.play_gesture("nod"))
+    assert after == _render(screen, 70), "nod outlasted its window"
+
+def test_unknown_gesture_is_rejected():
+    with pytest.raises(ValueError):
+        MochiFace().play_gesture("backflip")
+
+def test_banner_shows_then_expires(screen):
+    from mochi.constants import BANNER_SECONDS
+
+    show = lambda f: f.show_banner("28°")  # noqa: E731
+    assert _render(screen, 12, show) != _render(screen, 12)
+    gone = int((BANNER_SECONDS + 0.5) * 60)
+    assert _render(screen, gone, show) == _render(screen, gone)
+
+def test_banner_keeps_the_eyes_on_screen(screen):
+    """A banner is not a takeover: the face stays a face underneath it."""
+    face = MochiFace()
+    face.show_banner("28°")
+    face.update(1 / 60)
+    face.draw(screen)
+    top_half = pg.Surface((SIZE, SIZE // 2))
+    top_half.blit(screen, (0, 0))
+    assert pg.transform.average_color(top_half)[:3] != (0, 0, 0)
+
+def test_long_banner_is_shrunk_to_fit(screen):
+    face = MochiFace()
+    short = face.fit_font("28°", SIZE * 0.82, 74)
+    long = face.fit_font("Dentist appointment tomorrow afternoon", SIZE * 0.82, 74)
+    assert long.size("Dentist appointment tomorrow afternoon")[0] <= SIZE * 0.82
+    assert long.get_height() < short.get_height()
+
+def test_mouth_only_moves_while_audio_is_actually_playing():
+    """The bug: the mouth was driven by pipeline state, so it mimed through
+    the several seconds between one spoken sentence and the next."""
+    audible = [False]
+    face = MochiFace()
+    face.voice = lambda: audible[0]
+    face.set_speaking(True)
+    face.update(1 / 60)
+    assert not face.speaking, "mouth moved before any sound"
+    audible[0] = True
+    face.update(1 / 60)
+    assert face.speaking
+    audible[0] = False
+    face.update(1 / 60)
+    assert not face.speaking, "mouth kept going through the gap"
+
+def test_mouth_ignores_audio_when_not_allowed_to_speak():
+    face = MochiFace()
+    face.voice = lambda: True
+    face.set_speaking(False)
+    face.update(1 / 60)
+    assert not face.speaking
+
+def test_mouth_still_works_with_no_voice_attached():
+    face = MochiFace()
+    face.set_speaking(True)
+    face.update(1 / 60)
+    assert face.speaking
+
+def test_talking_mouth_is_irregular_not_a_metronome():
+    from mochi.face.engine import talk_openness
+
+    vals = [talk_openness(i / 60) for i in range(600)]
+    assert all(0.0 <= v <= 1.0 for v in vals)
+    assert min(vals) < 0.1 and max(vals) > 0.8, "mouth never fully opens or closes"
+    peaks = [
+        i
+        for i in range(1, len(vals) - 1)
+        if vals[i] > vals[i - 1] and vals[i] >= vals[i + 1]
+    ]
+    gaps = {peaks[i + 1] - peaks[i] for i in range(len(peaks) - 1)}
+    assert len(gaps) > 1, "mouth opens on a perfectly fixed beat"

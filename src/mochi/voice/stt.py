@@ -29,7 +29,9 @@ class WhisperTranscriber:
             audio,
             beam_size=WHISPER_BEAM,
             language="en",
-            vad_filter=True,
+            # the recorder already gated on silence; running VAD a second
+            # time cost time and clipped quiet word endings
+            vad_filter=False,
             condition_on_previous_text=False,
             initial_prompt=WHISPER_PROMPT,
         )
