@@ -1,25 +1,33 @@
 from __future__ import annotations
 
+import random
 import threading
 import time
 
 import pygame as pg
 
+from mochi.agenda import Agenda
+from mochi.alive import Ambient
 from mochi.brain.client import BrainClient, BrainOfflineError
 from mochi.constants import (
+    BUSY_STATES,
+    CURSE_LINES,
+    CURSE_RE,
     FPS,
+    GREET_RESET_SECONDS,
     GREETING,
     IDENTITY_CACHE_SECONDS,
-    MEMORY_SAVED,
     RETRY_SECONDS,
     SIZE,
     SLEEP_HOLD_STATES,
     STATE_EMOTION,
     STRANGER_GREETING,
 )
+from mochi.context import LocalSensors
 from mochi.desktop import context_note
 from mochi.face.engine import MochiFace
 from mochi.skills import Skills
+from mochi.tools import Toolbox
 from mochi.voice.pipeline import State, VoicePipeline
 
 
@@ -28,26 +36,30 @@ class InstantWake:
         return ""
 
 class VisionWake:
-    def __init__(self, presence, brain: BrainClient) -> None:
+    def __init__(self, presence, brain: BrainClient, now=time.monotonic) -> None:
         self.presence = presence
         self.brain = brain
+        self.now = now
         self.greeted: str | None = None
+        self.gone_since: float | None = None
 
     def wait(self) -> str:
         name, seen = self.presence.whos_there()
         self.brain.person = name
         if not seen:
-            self.greeted = None
+            # turning your head, leaning out of frame or one bad detection
+            # used to count as leaving, so Mochi greeted you again on every
+            # glance back. Only a real absence resets the greeting.
+            self.gone_since = self.gone_since or self.now()
+            if self.now() - self.gone_since >= GREET_RESET_SECONDS:
+                self.greeted = None
             return ""
-        if name:
-            if name != self.greeted:
-                self.greeted = name
-                return GREETING.format(name=name)
+        self.gone_since = None
+        who = name or "?"
+        if who == self.greeted:
             return ""
-        if self.greeted != "?":
-            self.greeted = "?"
-            return STRANGER_GREETING
-        return ""
+        self.greeted = who
+        return GREETING.format(name=name) if name else STRANGER_GREETING
 
 class VisionStt:
     def __init__(self, stt, presence, brain: BrainClient) -> None:
@@ -63,8 +75,12 @@ class VisionStt:
                 self.brain.person = name
         return text
 
-def make_apply(face: MochiFace, brain: BrainClient, sounds=None):
+def make_apply(face: MochiFace, brain: BrainClient, sounds=None, watch=None):
     def apply(state: State) -> None:
+        if watch is not None:
+            watch["state"] = state
+            if state == State.THINKING:
+                watch["heard"] = True
         if sounds is not None:
             sounds.on_state(state)
         asleep = brain.last_emotion == "sleeping"
@@ -77,20 +93,19 @@ def make_apply(face: MochiFace, brain: BrainClient, sounds=None):
 
     return apply
 
-def make_intercept(face: MochiFace, memory, skills, brain: BrainClient):
-    def intercept(text: str) -> str | None:
+def make_wake_guard(brain: BrainClient):
+    def wake_up(text: str) -> str | None:
         if brain.last_emotion == "sleeping":
             brain.last_emotion = "neutral"  # any speech wakes Mochi up
-        low = text.lower()
-        if "expression" in low or "emotion" in low:
-            face.play_parade()
-            return "Watch my face!"
-        if fact := memory.explicit(text):
-            memory.save(fact)
-            return MEMORY_SAVED
-        return skills.handle(text)
+        if CURSE_RE.search(text):
+            # answered here rather than by the model: it lands straight away
+            # instead of after fifteen seconds of thinking about swearing
+            line, mood = random.choice(CURSE_LINES)
+            brain.last_emotion = mood
+            return line
+        return None
 
-    return intercept
+    return wake_up
 
 def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
     from mochi.brain.memory import Memory, MemoryStore
@@ -98,6 +113,8 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
     store = MemoryStore()
     brain.store = store
     memory = Memory(brain, store)
+    watch = {"state": State.IDLE, "heard": False}
+    presence = None
     try:
         from mochi.voice.sounds import BOOT_SOUND, RobotSounds
         from mochi.voice.stt import WhisperTranscriber
@@ -121,26 +138,37 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
         from mochi.voice.console import ConsoleIn, ConsoleOut, EnterWake
 
         sounds, wake, stt, tts = None, EnterWake(), ConsoleIn(), ConsoleOut()
-    def announce(text: str) -> None:
-        face.set_emotion("excited")
+    face.voice = getattr(tts, "busy", None)
+    threading.Thread(target=brain.warm_up, daemon=True).start()
+
+    def announce(text: str, emotion: str = "excited") -> None:
+        face.set_emotion(emotion)
         face.set_speaking(True)
         tts.say(text)
         tts.flush()
         face.set_speaking(False)
-        face.set_emotion("neutral")
+        if emotion != "sleeping":
+            face.set_emotion("neutral")
 
     def set_mood(emotion: str) -> None:
         brain.last_emotion = emotion
 
-    skills = Skills(announce, set_mood)
+    skills = Skills(announce, set_mood, face.show_count)
+    brain.toolbox = Toolbox(skills, LocalSensors(), memory, face, Agenda())
+    ambient = Ambient(
+        lambda line, emotion: (set_mood(emotion), announce(line, emotion)),
+        presence,
+        lambda: watch["state"].value in BUSY_STATES,
+    )
+    ambient.start()
     print(f"desktop: {context_note()}")
     return VoicePipeline(
         wake,
         stt,
         brain,
         tts,
-        make_apply(face, brain, sounds),
-        make_intercept(face, memory, skills, brain),
+        make_apply(face, brain, sounds, watch),
+        make_wake_guard(brain),
         face.show_card,
         memory,
     )

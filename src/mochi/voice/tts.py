@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import threading
+import time
 from pathlib import Path
 
 import numpy as np
@@ -23,6 +24,7 @@ class KidRobotVoice:
             )
         self.voice = PiperVoice.load(str(model))
         self.lock = threading.Lock()
+        self.until = 0.0
 
     def say(self, text: str) -> None:
         with self.lock:
@@ -40,6 +42,13 @@ class KidRobotVoice:
         audio *= 1.0 - TREMOLO_DEPTH * (0.5 + 0.5 * np.sin(math.tau * TREMOLO_HZ * t))
         self.sd.wait()
         self.sd.play(audio, rate)
+        # play() returns immediately, so remember when the sound actually
+        # stops; the face reads this to move its mouth only while there is
+        # audio, instead of flapping through the gaps between sentences
+        self.until = time.monotonic() + len(audio) / rate
+
+    def busy(self) -> bool:
+        return time.monotonic() < self.until
 
     def flush(self) -> None:
         self.sd.wait()

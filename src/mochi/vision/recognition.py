@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 import sys
+import threading
 import time
 
 import numpy as np
@@ -18,7 +19,8 @@ from mochi.constants import (
 
 class FaceDB:
     def __init__(self, path: str = DB_PATH) -> None:
-        self.conn = sqlite3.connect(path)
+        # the ambient thread reads this too
+        self.conn = sqlite3.connect(path, check_same_thread=False)
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS persons ("
             "id INTEGER PRIMARY KEY, name TEXT UNIQUE, embedding BLOB, "
@@ -62,13 +64,15 @@ class Recognizer:
         self.app.prepare(ctx_id=0, det_size=(640, 640))
         self.cam = cv2.VideoCapture(CAMERA_INDEX)
         self.cam.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        self.lock = threading.Lock()  # conversation and ambient threads share the camera
         if not self.cam.isOpened():
             raise RuntimeError(f"no camera at index {CAMERA_INDEX} (see constants.CAMERA_INDEX)")
 
     def embedding(self) -> np.ndarray | None:
-        for _ in range(3):
-            self.cam.grab()
-        ok, frame = self.cam.read()
+        with self.lock:
+            for _ in range(3):
+                self.cam.grab()
+            ok, frame = self.cam.read()
         if not ok:
             return None
         faces = self.app.get(frame)
