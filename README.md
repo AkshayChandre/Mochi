@@ -43,6 +43,7 @@ Ask in whatever words you like.
 | Weather | anywhere, live (Open-Meteo) |
 | News | today's headlines (RSS feeds you choose in `constants.py`) |
 | Lookups | real facts from Wikipedia rather than guesses |
+| Sight | "what am I holding", "read this", "what can you see" |
 | Memory | remembers you, per person, with your spoken permission |
 | Face | 22 emotions, nods, shakes its head, shows code and banners |
 
@@ -122,6 +123,47 @@ pip install -e .[audio]
 python -m piper.download_voices en_US-amy-medium --data-dir voices
 mochi
 ```
+
+### Sight (any webcam)
+
+```powershell
+pip install -e .[vision]
+ollama pull moondream
+mochi
+```
+
+Then just ask: *what am I holding*, *what is this*, *what can you see*,
+*read this label*, *how many cups are on the desk*.
+
+Sight is on demand. A frame is captured at the moment Mochi calls its
+`look` tool and at no other time - there is no recording, no buffer and
+no background watching, and the prompt tells Mochi it may never describe
+anything it has not just looked at. It shares the one camera handle with
+face recognition rather than opening a second one.
+
+Pick the model in `config.yaml`:
+
+```yaml
+vision:
+  model: moondream
+```
+
+| Model | Size | Notes |
+|---|---|---|
+| `moondream` | ~1.7 GB | fits small cards; fine for single objects and short text |
+| `qwen2.5vl:3b` | ~3 GB | much better at cluttered scenes and counting |
+| `gemma3:4b` | ~3.3 GB | strongest of the three, needs the most room |
+
+**On a small card this is slow, and not because of the code.** If the
+chat model and the vision model cannot both sit in VRAM at once, Ollama
+evicts one to load the other, so every `look` costs two model loads -
+once to see, once to talk again. On 2 GB expect tens of seconds. Give
+both models room and it stops happening; Mochi keeps the vision model
+resident for 5 minutes so a run of questions only pays once.
+
+Counting and fine detail are where small vision models are worst. Mochi
+is told to hedge rather than sound certain, but treat "how many" answers
+as a guess.
 
 ### Face recognition (any webcam)
 

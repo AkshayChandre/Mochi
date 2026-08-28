@@ -14,7 +14,9 @@ from mochi.constants import (
     AGENDA_NOT_FOUND,
     COUNTDOWN_MAX,
     DEGREES_RE,
+    EMOTIONS,
     OWNER_CITY,
+    SIGHT_BLIND,
 )
 
 
@@ -28,7 +30,6 @@ def spec(tool: str, about: str, /, **params) -> dict:
             "parameters": {"type": "object", "properties": params, "required": required},
         },
     }
-
 
 TOOLS = [
     spec(
@@ -100,6 +101,18 @@ TOOLS = [
         "Real current weather. Leave the place empty for where the owner lives.",
         place={"type": "string", "description": "city or country, empty for home"},
     ),
+    spec(
+        "look",
+        "Look through your camera and answer a question about what you see. Use it "
+        "for what something is, what the owner is holding or wearing, what is around "
+        "you, reading text held up to you, and counting things. Pass the owner's own "
+        "question through. Your eyes are small: hedge on counts and fine detail.",
+        question={
+            "type": "string",
+            "description": "what to work out from the picture",
+            "required": True,
+        },
+    ),
     spec("news", "Today's real headlines, when asked what is happening in the world."),
     spec(
         "look_up",
@@ -109,17 +122,19 @@ TOOLS = [
     ),
 ]
 
-
 class Toolbox:
     """Executes what the model decides to do. No intent parsing lives here:
     the model picks the tool, this just runs it."""
 
-    def __init__(self, skills, sensors, memory=None, face=None, agenda=None) -> None:
+    def __init__(
+        self, skills, sensors, memory=None, face=None, agenda=None, eyes=None
+    ) -> None:
         self.skills = skills
         self.sensors = sensors
         self.memory = memory
         self.face = face
         self.agenda = agenda
+        self.eyes = eyes
 
     def get_time(self, place: str = "") -> str:
         when, where = self.sensors.clock(place)
@@ -157,17 +172,22 @@ class Toolbox:
         hits = [f for f in facts if not topic or topic.lower() in f.lower()]
         return "; ".join(hits) if hits else "nothing stored about that"
 
-    def show_expression(self, name: str) -> str:
+    def set_mood(self, name: str) -> bool:
+        # the face gets repainted from brain.last_emotion on the next state
+        # change, so setting only the face never survived the turn
+        if name not in EMOTIONS:
+            return False
+        self.skills.set_emotion(name)
         if self.face:
-            try:
-                self.face.set_emotion(name.lower().strip())
-            except ValueError:
-                return f"no expression called {name}"
-        return f"showing {name}"
+            self.face.set_emotion(name)  # immediate; the line above makes it stick
+        return True
+
+    def show_expression(self, name: str) -> str:
+        name = name.lower().strip()
+        return f"showing {name}" if self.set_mood(name) else f"no expression called {name}"
 
     def go_to_sleep(self) -> str:
-        if self.face:
-            self.face.set_emotion("sleeping")
+        self.set_mood("sleeping")
         return "eyes closed"
 
     def gesture(self, kind: str) -> str:
@@ -208,6 +228,12 @@ class Toolbox:
         if self.face and (hit := DEGREES_RE.search(report)):
             self.face.show_banner(hit.group(1) + "°")
         return report
+
+    def look(self, question: str) -> str:
+        if not self.eyes:
+            return SIGHT_BLIND
+        self.set_mood("curious")  # eyes widen while it peers
+        return self.eyes.look(question)
 
     def news(self) -> str:
         return world.headlines()

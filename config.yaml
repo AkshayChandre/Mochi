@@ -3,6 +3,11 @@ brain:
   port: 11434
   model: qwen2.5:7b
 
+vision:
+  # what Mochi sees with. moondream (~1.7GB) fits small cards; swap to
+  # qwen2.5vl:3b or gemma3:4b when there is VRAM for it.
+  model: moondream
+
 # redis:
 #   host: 127.0.0.1
 #   port: 6379

@@ -14,7 +14,6 @@ RSS = b"""<?xml version="1.0"?><rss><channel>
 <item><title>Third story</title></item>
 </channel></rss>"""
 
-
 def route(monkeypatch, table):
     def fake(url):
         for key, payload in table.items():
@@ -24,7 +23,6 @@ def route(monkeypatch, table):
 
     monkeypatch.setattr(world, "fetch", fake)
 
-
 def test_weather_reads_like_speech_not_json(monkeypatch):
     route(monkeypatch, {"geocoding": GEO, "forecast": FORECAST})
     said = world.weather("Hyderabad")
@@ -32,24 +30,20 @@ def test_weather_reads_like_speech_not_json(monkeypatch):
     assert "28 degrees" in said and "raining lightly" in said
     assert "24 to 33" in said and "feels like 31" in said
 
-
 def test_unknown_place_says_so_rather_than_guessing(monkeypatch):
     route(monkeypatch, {"geocoding": {"results": []}})
     assert "Nowhereville" in world.weather("Nowhereville")
-
 
 def test_weather_offline_is_words_not_an_exception(monkeypatch):
     monkeypatch.setattr(world, "fetch", lambda url: (_ for _ in ()).throw(OSError("down")))
     assert world.weather("Hyderabad") == OFFLINE_REPLY
     assert world.headlines() == OFFLINE_REPLY
 
-
 def test_headlines_are_trimmed_and_capped(monkeypatch):
     route(monkeypatch, {"http": RSS})
     out = world.headlines(limit=2)
     assert out.startswith("First story")
     assert len(out.split("; ")) == 2
-
 
 def test_one_dead_feed_does_not_kill_the_rest(monkeypatch):
     def fake(url):
@@ -59,7 +53,6 @@ def test_one_dead_feed_does_not_kill_the_rest(monkeypatch):
 
     monkeypatch.setattr(world, "fetch", fake)
     assert "First story" in world.headlines()
-
 
 def test_look_up_falls_back_to_search_when_the_title_misses(monkeypatch):
     calls = []
@@ -76,8 +69,14 @@ def test_look_up_falls_back_to_search_when_the_title_misses(monkeypatch):
     assert world.look_up("Chandrayaan") == "An Indian lunar mission."
     assert any("list=search" in c for c in calls)
 
-
 def test_shorten_cuts_on_a_sentence_boundary():
     long = ("Sentence one is here. " * 40).strip()
     out = world.shorten(long)
     assert len(out) <= 320 and out.endswith(".")
+
+def test_an_html_error_page_is_words_not_a_crash(monkeypatch):
+    """An error page instead of JSON raises ValueError, not OSError, and
+    world.py promises every failure comes back as something Mochi can say."""
+    monkeypatch.setattr(world, "fetch", lambda url: b"<html>502 Bad Gateway</html>")
+    assert world.weather("Hyderabad") == OFFLINE_REPLY
+    assert world.look_up("Alan Turing") == OFFLINE_REPLY

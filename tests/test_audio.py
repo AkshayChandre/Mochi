@@ -1,4 +1,5 @@
 import math
+import threading
 
 import pytest
 
@@ -65,6 +66,7 @@ def test_blips_muted_while_speaking():
     played = []
     s.sd = type("SD", (), {"play": lambda self, w, r: played.append(w)})()
     s.prev, s.thinking, s.speaking = State.IDLE, False, False
+    s.lock = threading.Lock()
     s.on_state(State.SPEAKING)
     s.play(sounds.THINK_BLIP)
     assert played == []

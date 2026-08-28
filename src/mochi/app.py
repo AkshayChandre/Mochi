@@ -10,6 +10,7 @@ from mochi.agenda import Agenda
 from mochi.alive import Ambient
 from mochi.brain.client import BrainClient, BrainOfflineError
 from mochi.constants import (
+    BRAIN_OFFLINE_SPOKEN,
     BUSY_STATES,
     CURSE_LINES,
     CURSE_RE,
@@ -28,6 +29,7 @@ from mochi.desktop import context_note
 from mochi.face.engine import MochiFace
 from mochi.skills import Skills
 from mochi.tools import Toolbox
+from mochi.vision.sight import Eyes
 from mochi.voice.pipeline import State, VoicePipeline
 
 
@@ -45,7 +47,6 @@ class VisionWake:
 
     def wait(self) -> str:
         name, seen = self.presence.whos_there()
-        self.brain.person = name
         if not seen:
             # turning your head, leaning out of frame or one bad detection
             # used to count as leaving, so Mochi greeted you again on every
@@ -54,6 +55,9 @@ class VisionWake:
             if self.now() - self.gone_since >= GREET_RESET_SECONDS:
                 self.greeted = None
             return ""
+        # only when seen: clearing it rewrites the cached note and costs a
+        # full prompt re-read next turn
+        self.brain.person = name
         self.gone_since = None
         who = name or "?"
         if who == self.greeted:
@@ -114,7 +118,7 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
     brain.store = store
     memory = Memory(brain, store)
     watch = {"state": State.IDLE, "heard": False}
-    presence = None
+    presence = eyes = None
     try:
         from mochi.voice.sounds import BOOT_SOUND, RobotSounds
         from mochi.voice.stt import WhisperTranscriber
@@ -129,6 +133,8 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
             wake = VisionWake(presence, brain)
             stt = VisionStt(stt, presence, brain)
             print("vision: face recognition active")
+            eyes = Eyes(presence.rec)  # same camera, same lock
+            print(f"vision: sight via {eyes.model}")
         except Exception as verr:
             print(f"vision unavailable: {verr} - running without recognition")
         sounds.play(BOOT_SOUND)
@@ -154,7 +160,7 @@ def build_pipeline(face: MochiFace, brain: BrainClient) -> VoicePipeline:
         brain.last_emotion = emotion
 
     skills = Skills(announce, set_mood, face.show_count)
-    brain.toolbox = Toolbox(skills, LocalSensors(), memory, face, Agenda())
+    brain.toolbox = Toolbox(skills, LocalSensors(), memory, face, Agenda(), eyes)
     ambient = Ambient(
         lambda line, emotion: (set_mood(emotion), announce(line, emotion)),
         presence,
@@ -177,13 +183,22 @@ def start_voice(face: MochiFace) -> None:
     brain = BrainClient()
 
     def loop() -> None:
-        pipeline = build_pipeline(face, brain)
+        pipeline = None
+        complained = False
         while True:
             try:
+                # inside the retry, or a bad mic kills the thread for good
+                pipeline = pipeline or build_pipeline(face, brain)
                 pipeline.run()
+                complained = False
             except BrainOfflineError as err:
                 print(f"brain offline, retrying: {err}")
                 face.set_emotion("error")
+                if not complained and pipeline:
+                    # going silent looks identical to being broken; say it
+                    # once, then stop nagging while it retries
+                    complained = True
+                    pipeline.speak(BRAIN_OFFLINE_SPOKEN)
                 time.sleep(RETRY_SECONDS)
             except Exception as err:
                 print(f"recovered from: {err!r}")

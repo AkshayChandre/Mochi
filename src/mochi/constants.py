@@ -1,4 +1,3 @@
-"""All display, animation, and emotion constants."""
 
 from __future__ import annotations
 
@@ -87,8 +86,14 @@ MOUTH_DEPTH = 16
 MOUTH_THICKNESS = 6
 MOUTH_OFFSET_Y = 128
 MOUTH_VISIBLE_MIN = 0.08
-
-AUTOPILOT_INTERVAL = 3.5
+HEART_STEPS = 28
+SPIRAL_STEPS = 46
+STAR_INNER = 0.42
+COUNT_SECONDS = 1.4
+CARD_PER_LINE_SECONDS = 0.6
+BANNER_FADE_SECONDS = 0.4
+FONT_MIN = 14
+FONT_STEP = 5
 
 GESTURES = ("nod", "shake")
 GESTURE_SECONDS = 0.85
@@ -98,6 +103,8 @@ BANNER_SECONDS = 4.0
 BANNER_MARGIN = 0.82
 
 DB_PATH = "mochi.db"
+DB_TIMEOUT = 5.0
+FRAME_FLUSH = 3
 CAMERA_INDEX = 0
 ENROLL_FRAMES = 5
 FACE_MATCH_THRESHOLD = 0.45
@@ -116,6 +123,20 @@ AGENDA_EMPTY = "Nothing on your calendar for the next {days} days."
 AGENDA_BAD_TIME = "I need a real date and time for that one."
 AGENDA_DROPPED = "Removed {count} event{s}."
 AGENDA_NOT_FOUND = "I don't have anything like that on the calendar."
+
+# past this the answer has stopped being conversational
+VISION_TIMEOUT = 45
+# keep_alive is the idle unload, not a reservation: ollama still evicts this
+# for the chat model. Long enough for a follow-up look, then out of the way.
+VISION_KEEP_ALIVE = "30s"
+VISION_OPTIONS = {"temperature": 0.2, "num_predict": 80}
+SIGHT_WIDTH = 640
+JPEG_QUALITY = 80
+SIGHT_BLIND = "I can't see anything - my camera isn't working."
+SIGHT_OFFLINE = "My eyes aren't responding right now."
+SIGHT_NOTHING = "I looked, but I can't make anything out."
+SIGHT_MISSING = "My eyes aren't installed yet. Someone needs to run: ollama pull {model}"
+BRAIN_OFFLINE_SPOKEN = "I can't reach my brain right now. I'll keep trying."
 
 WORLD_TIMEOUT = 6
 USER_AGENT = "Mochi/0.1 (open-source desk robot)"
@@ -159,14 +180,6 @@ MEMORY_TIMEOUT = 20
 MEMORY_MIN_TURNS = 2
 NO_REPLY = "Sorry, I didn't catch that. Can you say it another way?"
 WINDOW_TITLE_MAX = 120
-TIME_QUERIES = (
-    "what time",
-    "the time",
-    "time now",
-    "what's the date",
-    "what is the date",
-    "what day is",
-)
 CITY_TZ = {
     "india": "Asia/Kolkata",
     "hyderabad": "Asia/Kolkata",
@@ -189,32 +202,9 @@ CITY_TZ = {
     "australia": "Australia/Sydney",
     "utc": "UTC",
 }
-LANGUAGE_WORDS = (
-    "telugu", "hindi", "tamil", "kannada", "malayalam", "marathi", "bengali",
-    "urdu", "punjabi", "gujarati", "spanish", "french", "german", "japanese",
-    "chinese", "korean", "arabic", "russian", "italian", "portuguese",
-)
-LANGUAGE_CUES = ("speak", "talk", "say", "reply", "answer", "in ")
 ENGLISH_ONLY_REPLY = (
     "Sorry, my voice only knows English for now, so anything else comes out as gibberish."
 )
-SCREEN_WORDS = (
-    "screen",
-    "window",
-    "app",
-    "application",
-    "tab",
-    "file",
-    "document",
-    "page",
-    "working on",
-    "doing",
-    "editing",
-    "reading",
-    "looking at",
-)
-SELF_WORDS = ("i am", "i'm", "am i", " my ", "my ")
-FAREWELL_WORDS = ("bye", "goodnight", "good night", "see you", "talk later", "catch you later")
 # answered without the model, so it lands instantly instead of after 15s
 CURSE_RE = re.compile(
     # suffixes are spelled out rather than \w*, which happily matched
@@ -229,8 +219,6 @@ CURSE_LINES = (
     ("Whoa. Mind your language, I'm a family robot.", "shocked"),
     ("Language! I have delicate microphones.", "suspicious"),
 )
-GOODBYE_REPLY = "Goodnight! Wake me whenever."
-SKILL_EMOTIONS = {"screen": "curious", "time": "neutral", "timer": "excited", "bye": "sleeping"}
 IDENTITY_CACHE_SECONDS = 25.0
 
 AMBIENT_TICK = 4.0
@@ -268,24 +256,14 @@ EMOTION_HINTS = (
     (("?",), "curious"),
     (("!",), "happy"),
 )
-TIMER_RE = re.compile(r"\b(\d{1,3}|a|an|one|two|three|five|ten)\s*(second|sec|minute|min|hour)s?\b")
-WORD_NUMBERS = {"a": 1, "an": 1, "one": 1, "two": 2, "three": 3, "five": 5, "ten": 10}
-REMINDER_RE = re.compile(r"remind me (?:to |about |that |of |for )?(.+?)(?: in | after |$)")
-# whisper reliably mishears "count down" as "calm down", so accept both
-COUNTDOWN_RE = re.compile(r"(?:count|calm|counting)[ -]?down(?:\s+from)?\s+(\d{1,2}|a few)")
 COUNTDOWN_MAX = 20
 COUNTDOWN_GAP = 0.55
 COUNTDOWN_DONE = "Zero! Go!"
-CANCEL_RE = re.compile(r"\b(cancel|stop|clear|forget)\b.*\b(reminder|timer|countdown|alarm)")
-LIST_TIMERS_RE = re.compile(r"(what|which|any).*(remind|timer)")
 CANCEL_NONE = "You have nothing pending."
 CANCEL_DONE = "Cleared {count} pending {word}."
 NO_TIMERS = "Nothing pending right now."
 PENDING_ONE = "You asked me to remind you to {task}."
 PENDING_MANY = "You have {count} reminders: {tasks}."
-WHEN_ASK = "Sure - when should I remind you?"
-REMIND_INTENT_RE = re.compile(r"\bremind me\b")
-TIMER_UNITS = {"second": 1, "sec": 1, "minute": 60, "min": 60, "hour": 3600}
 TIMER_ACK = "Okay, {label}. I'll shout."
 TIMER_DONE = "Hey! Your {label} timer is up."
 REMINDER_ACK = "Got it, I'll remind you to {task} in {label}."
@@ -314,6 +292,11 @@ BRAIN_TIMEOUT = 120
 MAX_HISTORY = 24
 HISTORY_KEEP = 12
 KEEP_ALIVE = "24h"
+# the cap stops a model that answers every tool result with another one
+MAX_TOOL_ROUNDS = 3
+TAG_SCAN_MAX = 24
+# spoken before a tool slow enough that the silence reads as broken
+TOOL_WAIT_LINES = {"look": "Let me have a look."}
 # at ~4 tok/s on CPU every allowed token is a quarter second of the owner
 # waiting, so the ceiling is a latency setting as much as a style one
 BRAIN_OPTIONS = {"num_ctx": 4096, "temperature": 0.7, "num_predict": 140}
@@ -322,6 +305,11 @@ BRAIN_OPTIONS = {"num_ctx": 4096, "temperature": 0.7, "num_predict": 140}
 # "first word at" number in the log when tuning this.
 CLAUSE_MIN_CHARS = 14
 NOW_NOTE = "Today is {today}."
+TOOLLESS_MODEL = (
+    "{model} cannot call tools, so Mochi has no reminders, calendar, weather "
+    "or sight with it ({detail}). Pick a tool-capable model in config.yaml - "
+    "qwen2.5:3b and llama3.1:8b both work - or run: ollama pull qwen2.5:3b"
+)
 
 # Chat that needs no tool, then one prompt per tool family. A model that is
 # fast but scores badly here has stopped being useful.
@@ -332,6 +320,8 @@ BENCH_PROMPTS = (
     ("Remind me to drink water in ten minutes", "set_reminder"),
     ("Who was Alan Turing?", "look_up"),
     ("Put dentist on my calendar for tomorrow at 3pm", "add_event"),
+    ("Can you tell me what I'm holding?", "look"),
+    ("Read this label for me", "look"),
 )
 BENCH_RESULTS = {
     "get_time": "Friday 14 August, 08:04 AM in London",
@@ -339,18 +329,22 @@ BENCH_RESULTS = {
     "set_reminder": "Got it, I'll remind you to drink water in 10 minutes.",
     "look_up": "Alan Turing was an English mathematician and computer scientist.",
     "add_event": "Added: dentist, tomorrow at 3:00 PM.",
+    "look": "A blue coffee mug with a chip in the handle.",
 }
 SYSTEM_PROMPT = (
     f"You are Mochi, a small physical desk robot built by {OWNER_NAME}. "
     f"{OWNER_NAME} is your owner. A system note may tell you who is with you "
     "right now; greet and address that person by name. "
     "You hear through a microphone and speak out loud; you have a screen face. "
-    "Your camera is used only to recognize who is present. You cannot see "
-    "objects, gestures, screens, or anything else, so never claim to. When a "
+    "Your camera recognizes who is present, and the look tool lets you "
+    "actually see through it. You have no continuous vision: you see only at "
+    "the moment you call look, so never claim to have been watching, and "
+    "never describe anything you have not just looked at. When a "
     "system note names who is with you, you DO recognize that person. "
     "You have tools for the time, the owner's screen, reminders, countdowns, "
-    "memory, expressions, nodding and shaking your head, the owner's "
-    "calendar, real weather, today's headlines, and looking up facts. Call a "
+    "memory, expressions, nodding and shaking your head, your eyes, the "
+    "owner's calendar, real weather, today's headlines, and looking up "
+    "facts. Call a "
     "tool when you need a real fact or a real action, never guess one. Do "
     "not mention tools, and do not volunteer facts nobody asked for. "
     "You are told today's date before every message: use it to work out "

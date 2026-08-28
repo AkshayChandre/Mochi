@@ -13,7 +13,6 @@ def reply(text, tool=None, wrote=20, secs=1.0):
         msg = {"content": text}
     return json.dumps({"message": msg, **done}).encode()
 
-
 class Resp:
     def __init__(self, body):
         self.body = body
@@ -30,12 +29,10 @@ class Resp:
     def read(self):
         return self.body
 
-
 def test_spy_records_without_touching_the_real_world():
     spy = Spy()
     assert "Turing" in spy.run("look_up", {"topic": "Alan Turing"})
     assert spy.used == ["look_up"]
-
 
 def test_measure_scores_a_model_that_calls_every_tool(monkeypatch):
     """A perfect model: no tool for chat, the right tool for everything else."""
@@ -49,7 +46,6 @@ def test_measure_scores_a_model_that_calls_every_tool(monkeypatch):
     result = measure("fake-model")
     assert result["tools"] == f"{len(BENCH_PROMPTS)}/{len(BENCH_PROMPTS)}"
     assert result["rate"] > 0
-
 
 def test_measure_marks_down_a_model_that_never_calls_tools(monkeypatch):
     monkeypatch.setattr(

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import sqlite3
 from datetime import datetime, timedelta
 
 from mochi.constants import AGENDA_LIMIT, DB_PATH
+from mochi.db import connect
 
 
 def speak_when(when: datetime, now: datetime) -> str:
@@ -17,13 +17,12 @@ def speak_when(when: datetime, now: datetime) -> str:
         return f"{when.strftime('%A')} at {clock}"
     return f"{when.strftime('%d %B')} at {clock}"
 
-
 class Agenda:
     """Mochi's own calendar, in its own database. No account, no internet,
     nothing to expire."""
 
     def __init__(self, path: str = DB_PATH) -> None:
-        self.conn = sqlite3.connect(path, check_same_thread=False)
+        self.conn = connect(path)
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS events ("
             "id INTEGER PRIMARY KEY, title TEXT NOT NULL, at TEXT NOT NULL)"

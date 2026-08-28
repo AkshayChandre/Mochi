@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sqlite3
 import sys
 import threading
 import time
@@ -12,15 +11,16 @@ from mochi.constants import (
     DB_PATH,
     ENROLL_FRAMES,
     FACE_MATCH_THRESHOLD,
+    FRAME_FLUSH,
     PRESENCE_TRIES,
     STRANGER_FRAMES,
 )
+from mochi.db import connect
 
 
 class FaceDB:
     def __init__(self, path: str = DB_PATH) -> None:
-        # the ambient thread reads this too
-        self.conn = sqlite3.connect(path, check_same_thread=False)
+        self.conn = connect(path)
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS persons ("
             "id INTEGER PRIMARY KEY, name TEXT UNIQUE, embedding BLOB, "
@@ -60,20 +60,35 @@ class Recognizer:
         import cv2
         from insightface.app import FaceAnalysis
 
+        self.cv2 = cv2
         self.app = FaceAnalysis(name="buffalo_s", providers=["CPUExecutionProvider"])
         self.app.prepare(ctx_id=0, det_size=(640, 640))
-        self.cam = cv2.VideoCapture(CAMERA_INDEX)
-        self.cam.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         self.lock = threading.Lock()  # conversation and ambient threads share the camera
+        self.cam = self.open()
         if not self.cam.isOpened():
+            self.cam.release()
             raise RuntimeError(f"no camera at index {CAMERA_INDEX} (see constants.CAMERA_INDEX)")
 
-    def embedding(self) -> np.ndarray | None:
+    def open(self):
+        cam = self.cv2.VideoCapture(CAMERA_INDEX)
+        cam.set(self.cv2.CAP_PROP_BUFFERSIZE, 1)
+        return cam
+
+    def frame(self) -> np.ndarray | None:
         with self.lock:
-            for _ in range(3):
+            for _ in range(FRAME_FLUSH):  # drop buffered stale frames
                 self.cam.grab()
             ok, frame = self.cam.read()
-        if not ok:
+            if not ok:
+                # unplugged or stolen by another app: read() fails forever
+                # after this unless the handle is remade
+                self.cam.release()
+                self.cam = self.open()
+        return frame if ok else None
+
+    def embedding(self) -> np.ndarray | None:
+        frame = self.frame()
+        if frame is None:
             return None
         faces = self.app.get(frame)
         if not faces:
@@ -152,7 +167,6 @@ def main() -> None:
             time.sleep(0.5)
     except KeyboardInterrupt:
         print("\nbye")
-
 
 if __name__ == "__main__":
     main()
