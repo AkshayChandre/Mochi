@@ -7,6 +7,52 @@ Versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
+- Saying goodnight never kept Mochi asleep. `go_to_sleep` set the face
+  directly, but the face is repainted from `brain.last_emotion` on the next
+  state change, so it woke straight back up. `show_expression` and the
+  curious look while sight peers had the same hole. Mood now goes through
+  the brain and the face together, so it sticks.
+- Losing the face for one frame cleared who Mochi was talking to. That name
+  rides in the system note pinned above the whole conversation, so clearing
+  it rewrote the cached prefix and cost a full prompt re-read - around two
+  thousand tokens - on the very next turn. The name is only updated when
+  somebody is actually seen.
+- A camera that was unplugged, went to sleep, or got taken by another app
+  never came back. `read()` simply failed forever and greetings, the ambient
+  loop and sight all went quiet for the rest of the run. A dead handle is
+  released and reopened.
+- A reply in a script Piper cannot voice came out as silence. Everything past
+  Latin is stripped for the speaker, so a whole answer in Telugu or Hindi
+  reduced to nothing and Mochi just stood there. It now says it only speaks
+  English.
+- The three tables in `mochi.db` each opened their own connection with no
+  busy timeout and no WAL, written from the ambient thread, timer threads and
+  main. The loser of a race got an instant "database is locked". One shared
+  connection helper, WAL, and a timeout that waits its turn.
+- A failure while building the voice pipeline - a missing Piper voice, a busy
+  camera - killed the thread outright and left the face running with nothing
+  listening and nothing said about it. Building now happens inside the retry.
+- Reminders could be listed under the wrong name. Timers and labels lived in
+  two lists kept in step by slicing off the end, so a timer finishing out of
+  order shifted every remaining label along by one. They are one list of
+  pairs now.
+- `weather` and `look_up` promised every failure comes back as a spoken
+  sentence, but only caught `OSError`. An error page instead of JSON raises
+  `ValueError`, which escaped as "tool weather failed".
+- A think-blip landing exactly as speech started clipped the first word,
+  because `sd.play` stops whatever is already playing. The check and the play
+  now happen under one lock.
+
+### Removed
+- Seventeen constants left behind when keyword and regex intent matching was
+  deleted - the timer, reminder, countdown and cancel patterns, the screen,
+  self, farewell and language word lists. Nothing referenced them, and
+  leaving loaded regexes lying about invites someone to wire intent matching
+  back in.
+- `SKILL_EMOTIONS`, whose four keys had one live caller between them, the
+  unused `Sensors` protocol, the `MOCHI_FRAMES` escape hatch nothing set, and
+  the autopilot mode in the face harness that the number keys already cover.
+
 - "brain unreachable" was reported for every kind of failure, including
   ones where Ollama answered perfectly well. `HTTPError` subclasses
   `URLError`, so a model that cannot call tools, a model that was never

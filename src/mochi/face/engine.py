@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import math
-import os
 import random
 import sys
 
 import pygame as pg
 
 from mochi.constants import (
-    AUTOPILOT_INTERVAL,
     BACKGROUND,
+    BANNER_FADE_SECONDS,
     BANNER_MARGIN,
     BANNER_SECONDS,
     BEZEL,
@@ -29,12 +28,14 @@ from mochi.constants import (
     CARD_LINE_H,
     CARD_MAX_LINES,
     CARD_PANEL_TOP,
+    CARD_PER_LINE_SECONDS,
     CARD_SCROLL_DELAY,
     CARD_SCROLL_SPEED,
     CARD_SECONDS,
     CARD_WRAP,
     COLOR_EASE_RATE,
     COUNT_FONT,
+    COUNT_SECONDS,
     DOUBLE_BLINK_CHANCE,
     DOUBLE_BLINK_DELAY,
     EASE_RATE,
@@ -43,6 +44,8 @@ from mochi.constants import (
     EMOTIONS,
     EYE_GAP,
     EYE_RAISE,
+    FONT_MIN,
+    FONT_STEP,
     FPS,
     GAZE_LERP_RATE,
     GAZE_RANGE,
@@ -51,6 +54,7 @@ from mochi.constants import (
     GESTURE_SECONDS,
     GESTURES,
     GLINT_COLOR,
+    HEART_STEPS,
     IDLE_SLEEP_SECONDS,
     MOUTH_DEPTH,
     MOUTH_HALF_WIDTH,
@@ -65,7 +69,9 @@ from mochi.constants import (
     SHAKE_FREQ,
     SIZE,
     SPARKLE_POINTS,
+    SPIRAL_STEPS,
     SQUINT_FACTOR,
+    STAR_INNER,
     STRETCH_CROSS,
     STRETCH_GAIN,
     STRETCH_LIMITS,
@@ -93,15 +99,15 @@ def ease(current: float, target: float, rate: float, dt: float) -> float:
 
 def heart_points(cx: float, cy: float, w: float, h: float) -> list[tuple[float, float]]:
     pts = []
-    for i in range(28):
-        t = math.tau * i / 28
+    for i in range(HEART_STEPS):
+        t = math.tau * i / HEART_STEPS
         x = 16 * math.sin(t) ** 3
         y = 13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t)
         pts.append((cx + x * w / 34, cy - y * h / 30))
     return pts
 
 def spiral_points(cx: float, cy: float, radius: float, turns: float = 2.4) -> list[tuple]:
-    steps = 46
+    steps = SPIRAL_STEPS
     return [
         (
             cx + radius * (i / steps) * math.cos(math.tau * turns * i / steps),
@@ -114,7 +120,7 @@ def star_points(cx: float, cy: float, size: float, spikes: int = 4) -> list[tupl
     pts = []
     for i in range(spikes * 2):
         a = math.tau * i / (spikes * 2) - math.pi / 2
-        r = size if i % 2 == 0 else size * 0.42
+        r = size if i % 2 == 0 else size * STAR_INNER
         pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
     return pts
 
@@ -187,7 +193,7 @@ class MochiFace:
 
     def show_count(self, text: str) -> None:
         self.count_text = text
-        self.count_until = self.t + 1.4
+        self.count_until = self.t + COUNT_SECONDS
         self.idle_since = self.t
 
     def show_card(self, text: str) -> None:
@@ -201,7 +207,7 @@ class MochiFace:
         self.card_lines = lines[:CARD_MAX_LINES]
         self.card_scroll = 0.0
         self.card_started = self.t
-        self.card_until = self.t + CARD_SECONDS + 0.6 * len(self.card_lines)
+        self.card_until = self.t + CARD_SECONDS + CARD_PER_LINE_SECONDS * len(self.card_lines)
 
     def font(self, size: int) -> pg.font.Font:
         if size not in self.fonts:
@@ -435,17 +441,17 @@ class MochiFace:
             pg.draw.circle(screen, TEAR_COLOR, (int(x), int(y)), radius)
 
     def fit_font(self, text: str, width: float, largest: int) -> pg.font.Font:
-        for size in range(largest, 13, -5):
+        for size in range(largest, FONT_MIN - 1, -FONT_STEP):
             if self.font(size).size(text)[0] <= width:
                 return self.font(size)
-        return self.font(14)
+        return self.font(FONT_MIN)
 
     def draw_banner(self, screen: pg.Surface, color: tuple) -> None:
         left = self.banner_until - self.t
         font = self.fit_font(self.banner_text, SIZE * BANNER_MARGIN, 74)
         glyph = font.render(self.banner_text, True, color)
-        if left < 0.4:  # fade out instead of vanishing
-            glyph.set_alpha(int(255 * left / 0.4))
+        if left < BANNER_FADE_SECONDS:  # fade out instead of vanishing
+            glyph.set_alpha(int(255 * left / BANNER_FADE_SECONDS))
         screen.blit(glyph, glyph.get_rect(center=(SIZE / 2, SIZE * 0.84)))
 
     def draw_count(self, screen: pg.Surface) -> None:
@@ -498,10 +504,7 @@ def main() -> None:
     screen = pg.display.set_mode((SIZE, SIZE))
     clock = pg.time.Clock()
     face = MochiFace()
-    mouse_follow = autopilot = False
-    auto_next = 0.0
-    frame_limit = int(os.environ.get("MOCHI_FRAMES", 0))
-    frame = 0
+    mouse_follow = False
 
     while True:
         dt = min(clock.tick(FPS) / 1000.0, 0.05)
@@ -512,21 +515,12 @@ def main() -> None:
             if e.type == pg.KEYDOWN:
                 if pg.K_1 <= e.key <= pg.K_7:
                     face.set_emotion(EMOTION_KEYS[e.key - pg.K_1])
-                    autopilot = False
                 elif e.key == pg.K_m:
                     mouse_follow = not mouse_follow
-                elif e.key == pg.K_a:
-                    autopilot = not autopilot
                 elif e.key == pg.K_p:
                     face.play_parade()
                 elif e.key == pg.K_c:
                     face.show_card("def hello():\n    print('hi from Mochi')")
-
-        if autopilot:
-            auto_next -= dt
-            if auto_next <= 0:
-                auto_next = AUTOPILOT_INTERVAL
-                face.set_emotion(random.choice(EMOTION_KEYS[:-1]))
 
         mouse = None
         if mouse_follow:
@@ -537,13 +531,8 @@ def main() -> None:
 
         face.update(dt, mouse)
         face.draw(screen)
-        pg.display.set_caption(f"Mochi - {face.emotion}  [1-7 | M mouse | A auto | P parade]")
+        pg.display.set_caption(f"Mochi - {face.emotion}  [1-7 | M mouse | P parade]")
         pg.display.flip()
-
-        frame += 1
-        if frame_limit and frame >= frame_limit:
-            pg.quit()
-            return
 
 if __name__ == "__main__":
     main()

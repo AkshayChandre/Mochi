@@ -22,7 +22,6 @@ class Spy:
         self.used.append(name)
         return BENCH_RESULTS.get(name, "done")
 
-
 def measure(model: str) -> dict:
     brain = BrainClient(model=model)
     brain.verbose = False
@@ -45,7 +44,6 @@ def measure(model: str) -> dict:
         "words": wrote / len(BENCH_PROMPTS),
         "tools": f"{correct}/{len(BENCH_PROMPTS)}",
     }
-
 
 def main() -> None:
     models = sys.argv[1:] or [CONNECTIONS.llm_model]
@@ -72,7 +70,6 @@ def main() -> None:
     best = max(rows, key=lambda r: r["rate"])
     print(f"\nfastest: {best['model']} - set it in config.yaml under brain.model")
     print("check tools scored full marks before switching; speed is no good if it stops acting")
-
 
 if __name__ == "__main__":
     main()

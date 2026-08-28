@@ -84,3 +84,14 @@ def test_swearing_still_wakes_mochi_up():
     b = B()
     assert make_wake_guard(b)("bloody hell") is None or True
     assert b.last_emotion != "sleeping"
+
+def test_person_is_not_cleared_when_the_face_is_missed():
+    """person rides in the system note pinned above the whole conversation.
+    Clearing it on a missed frame rewrote that prefix and cost a full prompt
+    re-read on the very next turn."""
+    brain = Brain()
+    wake = VisionWake(Presence(("Akshay", True), (None, False)), brain, now=lambda: 0.0)
+    wake.wait()
+    assert brain.person == "Akshay"
+    wake.wait()
+    assert brain.person == "Akshay", "a missed frame must not rewrite the cached note"

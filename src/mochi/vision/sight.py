@@ -7,6 +7,7 @@ from urllib.request import Request, urlopen
 
 from mochi.config import CONNECTIONS
 from mochi.constants import (
+    CAMERA_INDEX,
     JPEG_QUALITY,
     SIGHT_BLIND,
     SIGHT_MISSING,
@@ -32,7 +33,6 @@ def encode(frame) -> str:
     if not ok:
         return ""
     return base64.b64encode(buffer).decode()
-
 
 class Eyes:
     """Sight on demand. Mochi has no continuous vision: a frame is captured
@@ -78,3 +78,29 @@ class Eyes:
         except (OSError, KeyError, ValueError):
             return SIGHT_OFFLINE
         return " ".join(seen.split()) or SIGHT_NOTHING
+
+def main() -> None:
+    # the eyes with no model deciding whether to use them: says which half
+    # is broken when Mochi will not answer what it is looking at
+    import sys
+    import time
+    from types import SimpleNamespace
+
+    import cv2
+
+    cam = cv2.VideoCapture(CAMERA_INDEX)
+    for _ in range(3):
+        cam.grab()
+    ok, frame = cam.read()
+    cam.release()
+    if not ok:
+        print(SIGHT_BLIND)
+        return
+    started = time.monotonic()
+    said = Eyes(SimpleNamespace(frame=lambda: frame)).look(
+        " ".join(sys.argv[1:]) or "what do you see?"
+    )
+    print(f"{said}\n({time.monotonic() - started:.1f}s)")
+
+if __name__ == "__main__":
+    main()

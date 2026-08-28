@@ -150,7 +150,6 @@ def test_context_is_not_force_fed_every_turn(monkeypatch):
     assert "likes tea" not in blob
     assert "It is" not in blob
 
-
 def test_tool_call_runs_then_model_answers(monkeypatch):
     calls = []
 
@@ -179,7 +178,6 @@ def test_tool_call_runs_then_model_answers(monkeypatch):
     bc.toolbox = Box()
     assert list(bc.chat_stream("what time is it")) == ["It's nine in the morning."]
     assert calls == [("get_time", {})]
-
 
 def test_no_tool_needed_still_answers(monkeypatch):
     class Box:
@@ -397,7 +395,6 @@ def http_error(code, body):
 
     return HTTPError("http://test/api/chat", code, "Bad Request", {}, io.BytesIO(body))
 
-
 def test_toolless_model_is_named_not_called_unreachable():
     """HTTPError subclasses URLError, so ollama refusing the request used to
     read exactly like a dead server and told the owner nothing."""
@@ -407,22 +404,18 @@ def test_toolless_model_is_named_not_called_unreachable():
     assert "ollama pull" in said
     assert "unreachable" not in said
 
-
 def test_missing_model_quotes_ollama():
     err = http_error(404, b'{"error":"model \'qwen2.5:3b\' not found"}')
     said = brain_client.explain(err, "http://test/api/chat", "qwen2.5:3b")
     assert "404" in said and "not found" in said
 
-
 def test_a_genuinely_dead_server_still_says_unreachable():
     said = brain_client.explain(OSError("connection refused"), "http://test/x", "m")
     assert "unreachable" in said and "connection refused" in said
 
-
 def test_unparseable_error_body_does_not_crash_the_explanation():
     err = http_error(500, b"<html>gateway blew up</html>")
     assert "500" in brain_client.explain(err, "http://test/x", "m")
-
 
 def test_stream_reports_the_real_reason(monkeypatch):
     def boom(req, timeout):
@@ -434,7 +427,6 @@ def test_stream_reports_the_real_reason(monkeypatch):
         list(bc.chat_stream("hello"))
     assert len(bc.history) == 1, "the failed turn should not stay in history"
 
-
 def tool_response(name, done=True):
     return FakeResponse(
         json.dumps(
@@ -444,7 +436,6 @@ def tool_response(name, done=True):
             }
         ).encode()
     )
-
 
 class Recorder:
     parse_args = staticmethod(lambda raw: raw or {})
@@ -457,7 +448,6 @@ class Recorder:
         self.ran.append(name)
         return self.result
 
-
 def test_a_second_round_of_tools_is_not_dropped(monkeypatch):
     """Answering can itself need a tool - look at this, then remember it.
     The second round used to be collected and thrown away, and when it was
@@ -469,7 +459,6 @@ def test_a_second_round_of_tools_is_not_dropped(monkeypatch):
     assert list(bc.chat_stream("note the time")) == ["Saved it."]
     assert bc.toolbox.ran == ["get_time", "remember"]
 
-
 def test_tool_rounds_are_capped(monkeypatch):
     """A model that answers every tool result with another tool call would
     otherwise hold the conversation open forever."""
@@ -479,7 +468,6 @@ def test_tool_rounds_are_capped(monkeypatch):
     bc.toolbox = Recorder()
     list(bc.chat_stream("spin"))
     assert bc.toolbox.ran == ["get_time", "get_time"]
-
 
 def test_what_was_seen_survives_into_the_next_turn(monkeypatch):
     """The tool result only ever reached the local message list, so the turn
@@ -491,7 +479,6 @@ def test_what_was_seen_survives_into_the_next_turn(monkeypatch):
     list(bc.chat_stream("what am I holding"))
     assert any(m["role"] == "tool" and "chip in it" in m["content"] for m in bc.history)
     assert any(m.get("tool_calls") for m in bc.history)
-
 
 def test_trim_never_orphans_a_tool_result(monkeypatch):
     """A tool result with its call trimmed off above it is a 400 from
@@ -511,7 +498,6 @@ def test_trim_never_orphans_a_tool_result(monkeypatch):
     assert bc.history[0]["role"] == "system"
     assert bc.history[1]["role"] != "tool"
 
-
 def test_a_slow_look_says_something_before_the_silence(monkeypatch):
     """Sight can take tens of seconds. Going quiet for that long is
     indistinguishable from being broken."""
@@ -523,10 +509,26 @@ def test_a_slow_look_says_something_before_the_silence(monkeypatch):
     assert said[0] == "Let me have a look."
     assert bc.first_word > 0, "the wait line is real audio and should start the clock"
 
-
 def test_a_quick_tool_stays_quiet(monkeypatch):
     seq = [tool_response("get_time"), stream_lines("[happy] Nine o'clock.")]
     monkeypatch.setattr(brain_client, "urlopen", lambda req, timeout: seq.pop(0))
     bc = BrainClient(host="test", port=1)
     bc.toolbox = Recorder("09:00")
     assert list(bc.chat_stream("time?")) == ["Nine o'clock."]
+
+def test_a_reply_it_cannot_pronounce_is_admitted_not_swallowed(monkeypatch):
+    """clean_speech strips anything Piper cannot voice, so a whole reply in
+    another script came out empty and Mochi just stood there."""
+    from mochi.constants import ENGLISH_ONLY_REPLY
+
+    monkeypatch.setattr(brain_client, "urlopen",
+                        lambda req, timeout: stream_lines("[happy] नमस्ते दोस्त"))
+    bc = BrainClient(host="test", port=1)
+    assert list(bc.chat_stream("say hi in hindi")) == [ENGLISH_ONLY_REPLY]
+
+def test_a_normal_reply_does_not_trigger_the_english_notice(monkeypatch):
+    monkeypatch.setattr(
+        brain_client, "urlopen", lambda req, timeout: stream_lines("[happy] Hello.")
+    )
+    bc = BrainClient(host="test", port=1)
+    assert list(bc.chat_stream("hi")) == ["Hello."]

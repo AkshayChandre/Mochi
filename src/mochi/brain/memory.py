@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import sqlite3
-
 from mochi.constants import (
     DB_PATH,
     MEMORY_EXTRACT_PROMPT,
@@ -12,11 +10,12 @@ from mochi.constants import (
     QUESTION_STARTS,
     REMEMBER_TRIGGERS,
 )
+from mochi.db import connect
 
 
 class MemoryStore:
     def __init__(self, path: str = DB_PATH) -> None:
-        self.conn = sqlite3.connect(path, check_same_thread=False)
+        self.conn = connect(path)
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS memories ("
             "id INTEGER PRIMARY KEY, person TEXT, fact TEXT, "

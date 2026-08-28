@@ -38,11 +38,14 @@ class RobotSounds:
         self.prev = State.IDLE
         self.thinking = False
         self.speaking = False
+        self.lock = threading.Lock()
 
     def play(self, wave: np.ndarray) -> None:
-        if self.speaking:
-            return
-        self.sd.play(wave, SOUND_SAMPLE_RATE)
+        # sd.play preempts, so a late blip clips the first word off a reply
+        with self.lock:
+            if self.speaking:
+                return
+            self.sd.play(wave, SOUND_SAMPLE_RATE)
 
     def think_loop(self) -> None:
         while self.thinking:
@@ -51,7 +54,8 @@ class RobotSounds:
                 self.play(THINK_BLIP)
 
     def on_state(self, state: State) -> None:
-        self.speaking = state == State.SPEAKING
+        with self.lock:
+            self.speaking = state == State.SPEAKING
         if state == State.THINKING and not self.thinking:
             self.thinking = True
             threading.Thread(target=self.think_loop, daemon=True).start()

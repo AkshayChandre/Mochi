@@ -15,6 +15,7 @@ from mochi.constants import (
     CODE_LANG_RE,
     EMOTION_HINTS,
     EMOTIONS,
+    ENGLISH_ONLY_REPLY,
     HISTORY_KEEP,
     KEEP_ALIVE,
     LATIN_MAX,
@@ -23,6 +24,7 @@ from mochi.constants import (
     NOW_NOTE,
     SPEECH_JUNK_RE,
     SYSTEM_PROMPT,
+    TAG_SCAN_MAX,
     TOOL_WAIT_LINES,
     TOOLLESS_MODEL,
 )
@@ -121,9 +123,7 @@ class BrainClient:
         return Request(self.url, json.dumps(payload).encode(), {"Content-Type": "application/json"})
 
     def apply_tools(self, msgs: list[dict], calls: list[dict]) -> None:
-        """Both lists get the call and its result. msgs is what this turn
-        sends; history is what the next turn remembers, and without it
-        'what colour was it?' has nothing behind it to look at."""
+        # history too, or the turn after a look cannot say what it saw
         asked = {"role": "assistant", "content": "", "tool_calls": calls}
         msgs.append(asked)
         self.history.append(asked)
@@ -185,9 +185,7 @@ class BrainClient:
         started = self.turn_started = time.monotonic()
         yield from self.stream(msgs)
         rounds = 0
-        # the model acted first; now let it speak about it - and act again if
-        # answering turned out to need a second tool, which used to be
-        # collected and then silently dropped
+        # a second round used to be collected and then dropped on the floor
         while self.calls and rounds < MAX_TOOL_ROUNDS:
             rounds += 1
             if line := self.waiting_line(self.calls):
@@ -281,8 +279,13 @@ class BrainClient:
         if tail := clean_speech(speak_buf):
             self.mark_first()
             yield tail
+            said_any = True
         if not raw.strip():  # a tool-only turn says nothing yet
             return
+        if not said_any and not self.calls and not self.last_blocks:
+            # every sentence stripped to nothing, so say something
+            self.mark_first()
+            yield ENGLISH_ONLY_REPLY
         if not self.tagged:
             self.last_emotion = guess_emotion(raw)
         self.history.append({"role": "assistant", "content": raw})
@@ -313,7 +316,7 @@ class BrainClient:
             return self.consume_bare_tag(buffer, lead)
         end = lead.find(closer, 1)
         if end == -1:
-            return (buffer, False) if len(lead) < 24 else (buffer, True)
+            return (buffer, False) if len(lead) < TAG_SCAN_MAX else (buffer, True)
         tag = lead[1:end].strip().lower()
         if tag in EMOTIONS:
             self.last_emotion = tag

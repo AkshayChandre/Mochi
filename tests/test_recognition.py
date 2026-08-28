@@ -37,3 +37,35 @@ def test_re_enroll_updates_instead_of_duplicating(tmp_path):
     db.add("akshay", vec(1))
     db.add("akshay", vec(2))
     assert len(db.all()) == 1
+
+def test_a_dropped_camera_is_reopened_not_abandoned():
+    """Unplug the webcam and read() fails forever: greetings, ambient and
+    sight all go quiet for the rest of the run unless the handle is remade."""
+    import threading
+
+    from mochi.vision.recognition import Recognizer
+
+    class Cam:
+        def __init__(self, ok):
+            self.ok = ok
+            self.released = False
+
+        def grab(self):
+            pass
+
+        def read(self):
+            return (self.ok, "frame" if self.ok else None)
+
+        def release(self):
+            self.released = True
+
+        def set(self, *a):
+            pass
+
+    rec = Recognizer.__new__(Recognizer)
+    rec.lock = threading.Lock()
+    rec.cam = dead = Cam(False)
+    rec.open = lambda: Cam(True)
+    assert rec.frame() is None
+    assert dead.released, "the dead handle should be let go"
+    assert rec.frame() == "frame", "the next look should work again"

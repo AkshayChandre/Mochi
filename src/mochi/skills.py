@@ -14,7 +14,6 @@ from mochi.constants import (
     PENDING_ONE,
     REMINDER_ACK,
     REMINDER_DONE,
-    SKILL_EMOTIONS,
     TIMER_ACK,
     TIMER_DONE,
 )
@@ -28,12 +27,12 @@ class Skills:
         self.speak = speak
         self.set_emotion = set_emotion
         self.show = show
-        self.timers: list[threading.Timer] = []
-        self.tasks: list[str] = []
+        # paired: two lists let an out-of-order timer shift every label along
+        self.timers: list[tuple[threading.Timer, str]] = []
 
-    def emote(self, kind: str) -> None:
+    def emote(self) -> None:
         if self.set_emotion:
-            self.set_emotion(SKILL_EMOTIONS[kind])
+            self.set_emotion("excited")
 
     def start_timer(self, seconds: int, label: str, task: str = "") -> str:
         message = (
@@ -49,9 +48,8 @@ class Skills:
         timer = threading.Timer(seconds, fire)
         timer.daemon = True
         timer.start()
-        self.timers.append(timer)
-        self.tasks.append(task or label)
-        self.emote("timer")
+        self.timers.append((timer, task or label))
+        self.emote()
         if task:
             return REMINDER_ACK.format(task=task, label=label)
         return TIMER_ACK.format(label=label)
@@ -70,22 +68,21 @@ class Skills:
                 self.speak(COUNTDOWN_DONE)
 
         threading.Thread(target=run, daemon=True).start()
-        self.emote("timer")
+        self.emote()
         return f"counting down from {start}"
 
     def pending(self) -> list[str]:
-        self.timers = [t for t in self.timers if t.is_alive()]
-        self.tasks = self.tasks[-len(self.timers) :] if self.timers else []
-        return self.tasks
+        self.timers = [pair for pair in self.timers if pair[0].is_alive()]
+        return [label for _, label in self.timers]
 
     def cancel_all(self) -> str:
         live = self.pending()
         if not live:
             return CANCEL_NONE
-        for timer in self.timers:
+        for timer, _ in self.timers:
             timer.cancel()
         count = len(live)
-        self.timers, self.tasks = [], []
+        self.timers = []
         return CANCEL_DONE.format(count=count, word="reminder" if count == 1 else "reminders")
 
     def list_pending(self) -> str:

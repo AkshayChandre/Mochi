@@ -24,7 +24,6 @@ class FakeStream:
             self.read_available = max(0, self.read_available - n)
         return (np.full((n, 1), self.level, dtype=np.float32), False)
 
-
 def recorder(stream):
     rec = audio.Recorder.__new__(audio.Recorder)
     rec.sd = None
@@ -33,7 +32,6 @@ def recorder(stream):
     rec.gate = 0.01
     rec.since_calibration = 0
     return rec
-
 
 def test_stream_is_opened_once_not_per_utterance():
     made = []
@@ -51,7 +49,6 @@ def test_stream_is_opened_once_not_per_utterance():
     rec.open()
     assert len(made) == 1 and rec.stream is first and first.started
 
-
 def test_opening_calibrates_and_reads_ambient_frames():
     rec = audio.Recorder.__new__(audio.Recorder)
     rec.sd, rec.frame_len, rec.stream = None, 480, FakeStream(level=0.02)
@@ -60,14 +57,12 @@ def test_opening_calibrates_and_reads_ambient_frames():
     assert rec.stream.reads == CALIBRATION_FRAMES
     assert rec.gate > 0.0 and rec.since_calibration == 0
 
-
 def test_recalibrates_after_enough_turns_so_the_gate_tracks_the_room():
     rec = recorder(FakeStream(level=0.02))
     rec.since_calibration = RECALIBRATE_EVERY
     rec.open()
     assert rec.since_calibration == 0
     assert rec.stream.reads == CALIBRATION_FRAMES
-
 
 def test_drain_throws_away_mochis_own_voice():
     stream = FakeStream()

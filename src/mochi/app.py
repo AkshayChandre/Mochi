@@ -47,7 +47,6 @@ class VisionWake:
 
     def wait(self) -> str:
         name, seen = self.presence.whos_there()
-        self.brain.person = name
         if not seen:
             # turning your head, leaning out of frame or one bad detection
             # used to count as leaving, so Mochi greeted you again on every
@@ -56,6 +55,9 @@ class VisionWake:
             if self.now() - self.gone_since >= GREET_RESET_SECONDS:
                 self.greeted = None
             return ""
+        # only when seen: clearing it rewrites the cached note and costs a
+        # full prompt re-read next turn
+        self.brain.person = name
         self.gone_since = None
         who = name or "?"
         if who == self.greeted:
@@ -181,16 +183,18 @@ def start_voice(face: MochiFace) -> None:
     brain = BrainClient()
 
     def loop() -> None:
-        pipeline = build_pipeline(face, brain)
+        pipeline = None
         complained = False
         while True:
             try:
+                # inside the retry, or a bad mic kills the thread for good
+                pipeline = pipeline or build_pipeline(face, brain)
                 pipeline.run()
                 complained = False
             except BrainOfflineError as err:
                 print(f"brain offline, retrying: {err}")
                 face.set_emotion("error")
-                if not complained:
+                if not complained and pipeline:
                     # going silent looks identical to being broken; say it
                     # once, then stop nagging while it retries
                     complained = True

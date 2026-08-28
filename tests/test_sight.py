@@ -17,14 +17,12 @@ class Camera:
         self.grabs += 1
         return self.value
 
-
 class Resp(io.BytesIO):
     def __enter__(self):
         return self
 
     def __exit__(self, *a):
         return False
-
 
 def answering(monkeypatch, text, captured=None):
     monkeypatch.setattr(sight, "encode", lambda frame: "BASE64PICTURE")
@@ -35,7 +33,6 @@ def answering(monkeypatch, text, captured=None):
         return Resp(json.dumps({"message": {"content": text}}).encode())
 
     monkeypatch.setattr(sight, "urlopen", fake)
-
 
 def test_look_sends_the_picture_and_the_question(monkeypatch):
     seen = {}
@@ -48,7 +45,6 @@ def test_look_sends_the_picture_and_the_question(monkeypatch):
     assert seen["model"] == "moondream"
     assert seen["stream"] is False
 
-
 def test_the_owners_own_question_is_passed_through(monkeypatch):
     """One tool covers describing, reading and counting because the question
     goes straight to the model."""
@@ -57,20 +53,16 @@ def test_the_owners_own_question_is_passed_through(monkeypatch):
     Eyes(Camera(), host="test", port=1).look("read the sign")
     assert seen["messages"][0]["content"] == "read the sign"
 
-
 def test_no_camera_is_admitted_not_hallucinated():
     assert Eyes(None, host="test", port=1).look("what is this") == SIGHT_BLIND
-
 
 def test_a_dead_camera_is_admitted(monkeypatch):
     monkeypatch.setattr(sight, "encode", lambda frame: "X")
     assert Eyes(Camera(None), host="test", port=1).look("what is this") == SIGHT_BLIND
 
-
 def test_unencodable_frame_is_admitted(monkeypatch):
     monkeypatch.setattr(sight, "encode", lambda frame: "")
     assert Eyes(Camera(), host="test", port=1).look("what is this") == SIGHT_BLIND
-
 
 def test_vision_model_offline_returns_words_not_an_exception(monkeypatch):
     monkeypatch.setattr(sight, "encode", lambda frame: "X")
@@ -79,23 +71,19 @@ def test_vision_model_offline_returns_words_not_an_exception(monkeypatch):
     )
     assert Eyes(Camera(), host="test", port=1).look("what is this") == SIGHT_OFFLINE
 
-
 def test_empty_answer_is_admitted(monkeypatch):
     answering(monkeypatch, "   ")
     assert Eyes(Camera(), host="test", port=1).look("what is this") == SIGHT_NOTHING
 
-
 def test_multiline_answer_is_flattened_for_speech(monkeypatch):
     answering(monkeypatch, "A mug.\n\nIt is  blue.\n")
     assert Eyes(Camera(), host="test", port=1).look("what") == "A mug. It is blue."
-
 
 def test_looking_grabs_exactly_one_frame(monkeypatch):
     answering(monkeypatch, "A mug.")
     camera = Camera()
     Eyes(camera, host="test", port=1).look("what")
     assert camera.grabs == 1, "sight is on demand, not a video feed"
-
 
 def test_encode_shrinks_a_big_frame():
     cv2 = pytest.importorskip("cv2")
@@ -120,12 +108,10 @@ def missing(monkeypatch, code):
 
     monkeypatch.setattr(sight, "urlopen", boom)
 
-
 def test_vision_model_not_pulled_says_how_to_fix_it(monkeypatch):
     missing(monkeypatch, 404)
     said = Eyes(Camera(), host="test", port=1, model="moondream").look("what")
     assert "ollama pull moondream" in said
-
 
 def test_other_http_errors_fall_back_to_the_generic_line(monkeypatch):
     missing(monkeypatch, 500)
