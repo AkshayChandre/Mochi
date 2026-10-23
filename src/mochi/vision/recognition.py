@@ -40,7 +40,6 @@ class FaceDB:
         rows = self.conn.execute("SELECT name, embedding FROM persons").fetchall()
         return [(n, np.frombuffer(b, dtype=np.float32)) for n, b in rows]
 
-    # ponytail: linear cosine scan, fine below ~10k people; sqlite-vec if ever beyond
     def identify(self, embedding: np.ndarray) -> tuple[str | None, float]:
         best, score = None, 0.0
         emb = embedding / np.linalg.norm(embedding)

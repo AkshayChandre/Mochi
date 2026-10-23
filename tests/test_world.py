@@ -113,3 +113,15 @@ def test_an_undated_headline_still_shows_up(monkeypatch):
     page = b"<rss><channel><item><title>No date</title></item></channel></rss>"
     monkeypatch.setattr(world, "fetch", lambda url: page)
     assert "No date" in world.headlines()
+
+def test_a_null_reading_does_not_kill_the_weather_tool(monkeypatch):
+    """Open-Meteo can return a key with null in it, and .get(key, default)
+    hands that null straight to round()."""
+    def fake(url):
+        if "geocod" in url:
+            return {"results": [{"latitude": 1, "longitude": 1, "name": "Hyderabad"}]}
+        return {"current": {"temperature_2m": None, "weather_code": None},
+                "daily": {"temperature_2m_max": [None], "temperature_2m_min": [None]}}
+
+    monkeypatch.setattr(world, "fetch_json", fake)
+    assert "Hyderabad" in world.weather("Hyderabad")

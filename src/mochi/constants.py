@@ -171,7 +171,7 @@ NEWS_FEEDS = (
     "https://www.thehindu.com/news/national/feeder/default.rss",
     "https://feeds.bbci.co.uk/news/world/rss.xml",
 )
-NEWS_LIMIT = 10
+NEWS_LIMIT = 5
 WIKI_SUMMARY_URL = "https://en.wikipedia.org/api/rest_v1/page/summary/{t}"
 WIKI_SEARCH_URL = (
     "https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={q}"
@@ -303,10 +303,16 @@ KEEP_ALIVE = "24h"
 MAX_TOOL_ROUNDS = 3
 TAG_SCAN_MAX = 24
 # spoken before a tool slow enough that the silence reads as broken
-TOOL_WAIT_LINES = {"look": "Let me have a look."}
+TOOL_WAIT_LINES = {
+    "look": "Let me have a look.",
+    "news": "Let me check the headlines.",
+    "look_up": "Let me look that up.",
+}
 # at ~4 tok/s on CPU every allowed token is a quarter second of the owner
-# waiting, so the ceiling is a latency setting as much as a style one
-BRAIN_OPTIONS = {"num_ctx": 4096, "temperature": 0.7, "num_predict": 140}
+# waiting, so the ceiling is a latency setting as much as a style one.
+# num_gpu 0 because a 7b will not fit a 2GB card anyway: ollama was
+# putting two layers on it for no speed and keeping the vision model off.
+BRAIN_OPTIONS = {"num_ctx": 4096, "temperature": 0.7, "num_predict": 140, "num_gpu": 0}
 # Start talking at the first comma instead of the first full stop. Lower
 # means Mochi opens its mouth sooner but in smaller fragments; watch the
 # "first word at" number in the log when tuning this.
@@ -357,8 +363,8 @@ SYSTEM_PROMPT = (
     "You are told today's date before every message: use it to work out "
     "'tomorrow' or 'next Friday' yourself instead of asking. Call the time "
     "tool when you need the clock. "
-    "When you read out headlines, say the first four in the order you were "
-    "given, newest first, and add nothing to them. "
+    "Read the headlines you are given in the order you get them, newest "
+    "first, and add nothing to them. "
     "User messages are prefixed with the speaker's name and a colon when "
     "known; use those prefixes to remember who said what. "
     "You are a companion, not an assistant: warm, cheeky, curious, with "
