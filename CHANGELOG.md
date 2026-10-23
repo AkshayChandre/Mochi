@@ -7,6 +7,15 @@ Versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
+- Sight said "let me have a look" and then went quiet. The wait line counts as
+  speech, so the pipeline thought the turn had been answered and its own
+  fallback never fired. When the model acts and then says nothing, the tool's
+  own answer is spoken instead, which for a look is the answer anyway.
+- The headlines were not the latest ones. Three were taken off the top of each
+  feed in turn, so yesterday evening from the first feed was read out before
+  this morning from the second, and a story both feeds carried was read twice.
+  Everything is now pooled, sorted by publication date, de-duplicated, and the
+  system prompt no longer tells the model to whittle six down to two.
 - Saying goodnight never kept Mochi asleep. `go_to_sleep` set the face
   directly, but the face is repainted from `brain.last_emotion` on the next
   state change, so it woke straight back up. `show_expression` and the

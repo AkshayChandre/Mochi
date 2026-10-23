@@ -32,11 +32,12 @@ def measure(model: str) -> dict:
     for asked, wanted in BENCH_PROMPTS:
         spy.used.clear()
         said = " ".join(brain.chat_stream(asked))
-        waits.append(brain.first_word)
+        first = brain.first_word or 0.0
+        waits.append(first)
         wrote += brain.stats.get("eval_count", 0)
         writing += brain.stats.get("write", 0.0)
         correct += (wanted in spy.used) if wanted else (not spy.used and bool(said))
-        print(f"  {asked[:44]:46} {brain.first_word:4.1f}s  {','.join(spy.used) or '-'}")
+        print(f"  {asked[:44]:46} {first:4.1f}s  {','.join(spy.used) or '-'}")
     return {
         "model": model,
         "first": sum(waits) / len(waits),

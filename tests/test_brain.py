@@ -359,7 +359,7 @@ def test_first_word_is_timed_and_reported(monkeypatch):
     monkeypatch.setattr(brain_client, "urlopen", lambda req, timeout: resp)
     bc = BrainClient(host="test", port=1)
     list(bc.chat_stream("go"))
-    assert bc.first_word > 0.0
+    assert bc.first_word is not None
     assert "first word at" in bc.report(1.0)
 
 def test_first_word_is_never_when_nothing_is_said(monkeypatch):
@@ -367,7 +367,7 @@ def test_first_word_is_never_when_nothing_is_said(monkeypatch):
     monkeypatch.setattr(brain_client, "urlopen", lambda req, timeout: resp)
     bc = BrainClient(host="test", port=1)
     list(bc.chat_stream("code"))
-    assert bc.first_word == 0.0
+    assert bc.first_word is None
     assert "never" in bc.report(1.0)
 
 def test_warm_up_sends_the_same_prefix_a_real_turn_will(monkeypatch):
@@ -507,7 +507,7 @@ def test_a_slow_look_says_something_before_the_silence(monkeypatch):
     bc.toolbox = Recorder("A blue mug.")
     said = list(bc.chat_stream("what is this"))
     assert said[0] == "Let me have a look."
-    assert bc.first_word > 0, "the wait line is real audio and should start the clock"
+    assert bc.first_word is not None, "the wait line is real audio and starts the clock"
 
 def test_a_quick_tool_stays_quiet(monkeypatch):
     seq = [tool_response("get_time"), stream_lines("[happy] Nine o'clock.")]
@@ -532,3 +532,23 @@ def test_a_normal_reply_does_not_trigger_the_english_notice(monkeypatch):
     )
     bc = BrainClient(host="test", port=1)
     assert list(bc.chat_stream("hi")) == ["Hello."]
+
+def test_it_says_the_tool_answer_when_the_model_goes_quiet(monkeypatch):
+    """The wait line already told the pipeline somebody spoke, so its NO_REPLY
+    fallback was disarmed and a look that the model never commented on came
+    out as 'let me have a look' followed by nothing at all."""
+    seq = [tool_response("look"), stream_lines("")]
+    monkeypatch.setattr(brain_client, "urlopen", lambda req, timeout: seq.pop(0))
+    bc = BrainClient(host="test", port=1)
+    bc.toolbox = Recorder("A hand holding up five fingers.")
+    assert list(bc.chat_stream("what am I holding")) == [
+        "Let me have a look.",
+        "A hand holding up five fingers.",
+    ]
+
+def test_the_tool_answer_is_not_repeated_when_the_model_does_speak(monkeypatch):
+    seq = [tool_response("look"), stream_lines("[happy] It's your hand.")]
+    monkeypatch.setattr(brain_client, "urlopen", lambda req, timeout: seq.pop(0))
+    bc = BrainClient(host="test", port=1)
+    bc.toolbox = Recorder("A hand.")
+    assert list(bc.chat_stream("what is this")) == ["Let me have a look.", "It's your hand."]

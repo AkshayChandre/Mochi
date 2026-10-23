@@ -103,10 +103,11 @@ TOOLS = [
     ),
     spec(
         "look",
-        "Look through your camera and answer a question about what you see. Use it "
-        "for what something is, what the owner is holding or wearing, what is around "
-        "you, reading text held up to you, and counting things. Pass the owner's own "
-        "question through. Your eyes are small: hedge on counts and fine detail.",
+        "Look through your camera. This is your only way to know anything about the "
+        "world in front of you right now: what a thing is, what a label or page or "
+        "screen says, what the owner is holding or wearing, what is around you, how "
+        "many of something there are. Pass the owner's question through unchanged. "
+        "Your eyes are small: hedge on counts and fine detail.",
         question={
             "type": "string",
             "description": "what to work out from the picture",
@@ -116,8 +117,10 @@ TOOLS = [
     spec("news", "Today's real headlines, when asked what is happening in the world."),
     spec(
         "look_up",
-        "Look up a real fact about a person, place, thing or event. Use this instead "
-        "of guessing whenever you are not certain.",
+        "Look up a real fact about a person, place, thing or event. Use it for every "
+        "question about the real world, including the ones you are sure you know: "
+        "your memory of facts is unreliable and a confident wrong answer is worse "
+        "than a short pause.",
         topic={"type": "string", "description": "what to look up", "required": True},
     ),
 ]

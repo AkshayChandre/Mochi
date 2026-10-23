@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from email.utils import parsedate_to_datetime
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 from xml.etree import ElementTree
@@ -52,16 +53,30 @@ def weather(place: str) -> str:
         parts.append(f"feels like {round(feels)}")
     return ", ".join(parts)
 
+def published(item) -> float:
+    try:
+        return parsedate_to_datetime(item.findtext("pubDate")).timestamp()
+    except (TypeError, ValueError):
+        return 0.0
+
 def headlines(limit: int = NEWS_LIMIT) -> str:
-    per = max(1, limit // max(1, len(NEWS_FEEDS)))
-    out: list[str] = []
+    # newest first across every feed. Taking the first few from each in turn
+    # read out yesterday evening before this morning.
+    items: list[tuple[float, str]] = []
     for feed in NEWS_FEEDS:
         try:
             root = ElementTree.fromstring(fetch(feed))
         except (OSError, ElementTree.ParseError):
             continue
-        titles = [t.strip() for item in root.iter("item") if (t := item.findtext("title"))]
-        out.extend(titles[:per])
+        items += [
+            (published(i), t.strip()) for i in root.iter("item") if (t := i.findtext("title"))
+        ]
+    seen: set[str] = set()
+    out: list[str] = []
+    for _, title in sorted(items, key=lambda pair: pair[0], reverse=True):
+        if title.lower() not in seen:
+            seen.add(title.lower())
+            out.append(title)
     return "; ".join(out[:limit]) if out else OFFLINE_REPLY
 
 def shorten(text: str) -> str:
