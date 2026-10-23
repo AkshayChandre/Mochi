@@ -8,11 +8,14 @@ from urllib.request import Request, urlopen
 from mochi.config import CONNECTIONS
 from mochi.constants import (
     CAMERA_INDEX,
+    CAMERA_WARMUP,
     JPEG_QUALITY,
     SIGHT_BLIND,
+    SIGHT_DEBUG_FILE,
     SIGHT_MISSING,
     SIGHT_NOTHING,
     SIGHT_OFFLINE,
+    SIGHT_PROBE_TIMEOUT,
     SIGHT_WIDTH,
     VISION_KEEP_ALIVE,
     VISION_OPTIONS,
@@ -39,12 +42,13 @@ class Eyes:
     at the moment this is called and nowhere else."""
 
     def __init__(self, camera, host: str | None = None, port: int | None = None,
-                 model: str | None = None) -> None:
+                 model: str | None = None, timeout: int = VISION_TIMEOUT) -> None:
         host = host or CONNECTIONS.brain_host
         port = port or CONNECTIONS.brain_port
         self.url = f"http://{host}:{port}/api/chat"
         self.model = model or CONNECTIONS.vision_model
         self.camera = camera
+        self.timeout = timeout
 
     def look(self, question: str) -> str:
         if self.camera is None:
@@ -68,7 +72,7 @@ class Eyes:
             self.url, json.dumps(payload).encode(), {"Content-Type": "application/json"}
         )
         try:
-            with urlopen(request, timeout=VISION_TIMEOUT) as resp:
+            with urlopen(request, timeout=self.timeout) as resp:
                 seen = json.load(resp)["message"]["content"].strip()
         except HTTPError as err:
             # a model that was never pulled answers 404, which is not the
@@ -84,20 +88,27 @@ def main() -> None:
     # is broken when Mochi will not answer what it is looking at
     import sys
     import time
+    from pathlib import Path
     from types import SimpleNamespace
 
     import cv2
 
     cam = cv2.VideoCapture(CAMERA_INDEX)
-    for _ in range(3):
-        cam.grab()
-    ok, frame = cam.read()
+    frame = None
+    deadline = time.monotonic() + CAMERA_WARMUP
+    while time.monotonic() < deadline:
+        ok, shot = cam.read()
+        if ok:
+            frame = shot
     cam.release()
-    if not ok:
+    if frame is None:
         print(SIGHT_BLIND)
         return
+    Path(SIGHT_DEBUG_FILE).write_bytes(base64.b64decode(encode(frame)))
+    print(f"sent {frame.shape[1]}x{frame.shape[0]}, brightness {frame.mean():.0f}/255")
+    print(f"open {SIGHT_DEBUG_FILE} to see exactly what Mochi looked at")
     started = time.monotonic()
-    said = Eyes(SimpleNamespace(frame=lambda: frame)).look(
+    said = Eyes(SimpleNamespace(frame=lambda: frame), timeout=SIGHT_PROBE_TIMEOUT).look(
         " ".join(sys.argv[1:]) or "what do you see?"
     )
     print(f"{said}\n({time.monotonic() - started:.1f}s)")

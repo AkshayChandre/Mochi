@@ -104,8 +104,12 @@ class BrainClient:
         self.verbose = True
         self.calls: list[dict] = []
         self.stats: dict = {}
-        self.first_word = 0.0
+        # None, not 0.0: on Windows monotonic moves in 15ms steps, so a fast
+        # first word measured as exactly zero and the clock never latched
+        self.first_word: float | None = None
         self.turn_started = 0.0
+        self.spoke = False
+        self.last_result = ""
 
     def request(self, msgs: list[dict], stream: bool, options: dict | None = None) -> Request:
         payload = {
@@ -134,6 +138,7 @@ class BrainClient:
             result = self.toolbox.run(name, args)
             if self.verbose:
                 print(f"tool {name}({args}) -> {result}")
+            self.last_result = result
             answered = {"role": "tool", "name": name, "content": result}
             msgs.append(answered)
             self.history.append(answered)
@@ -145,8 +150,8 @@ class BrainClient:
         return ""
 
     def mark_first(self) -> None:
-        if not self.first_word:
-            self.first_word = time.monotonic() - self.turn_started
+        if self.first_word is None:
+            self.first_word = time.perf_counter() - self.turn_started
 
     def tally(self, done: dict) -> None:
         """Ollama reports what it actually re-read. A prompt count that stays
@@ -181,8 +186,10 @@ class BrainClient:
         # of the system prompt and all 17 tool schemas, every single turn.
         msgs.insert(1, {"role": "system", "content": self.note()})
         self.stats = {}
-        self.first_word = 0.0
-        started = self.turn_started = time.monotonic()
+        self.first_word = None
+        self.spoke = False
+        self.last_result = ""
+        started = self.turn_started = time.perf_counter()
         yield from self.stream(msgs)
         rounds = 0
         # a second round used to be collected and then dropped on the floor
@@ -193,15 +200,20 @@ class BrainClient:
                 yield line
             self.apply_tools(msgs, self.calls)
             yield from self.stream(msgs)
+        if not self.spoke and (answer := clean_speech(self.last_result)):
+            # it acted then said nothing, and the wait line already told the
+            # pipeline somebody spoke, so nothing else covers this
+            self.mark_first()
+            yield answer
         if self.verbose:
-            print(self.report(time.monotonic() - started))
+            print(self.report(time.perf_counter() - started))
 
     def report(self, seconds: float) -> str:
         read, reading = self.stats.get("prompt_eval_count", 0), self.stats.get("prompt", 0.0)
         wrote, writing = self.stats.get("eval_count", 0), self.stats.get("write", 0.0)
         rate = f"{wrote / writing:.1f} tok/s" if writing else "?"
         # first word is the number that matches what the silence feels like
-        first = f"{self.first_word:.1f}s" if self.first_word else "never"
+        first = f"{self.first_word:.1f}s" if self.first_word is not None else "never"
         return (
             f"first word at {first} | reply took {seconds:.1f}s "
             f"| read {read} tok in {reading:.1f}s | wrote {wrote} tok in {writing:.1f}s ({rate})"
@@ -264,7 +276,7 @@ class BrainClient:
                         sentences, speak_buf = split_sentences(speak_buf, eager=not said_any)
                         for sentence in sentences:
                             if spoken := clean_speech(sentence):
-                                said_any = True
+                                said_any = self.spoke = True
                                 self.mark_first()
                                 yield spoken
                     pending = ""
@@ -279,12 +291,13 @@ class BrainClient:
         if tail := clean_speech(speak_buf):
             self.mark_first()
             yield tail
-            said_any = True
+            said_any = self.spoke = True
         if not raw.strip():  # a tool-only turn says nothing yet
             return
         if not said_any and not self.calls and not self.last_blocks:
             # every sentence stripped to nothing, so say something
             self.mark_first()
+            self.spoke = True
             yield ENGLISH_ONLY_REPLY
         if not self.tagged:
             self.last_emotion = guess_emotion(raw)

@@ -116,3 +116,21 @@ def test_vision_model_not_pulled_says_how_to_fix_it(monkeypatch):
 def test_other_http_errors_fall_back_to_the_generic_line(monkeypatch):
     missing(monkeypatch, 500)
     assert Eyes(Camera(), host="test", port=1).look("what") == SIGHT_OFFLINE
+
+def test_the_probe_waits_longer_than_the_robot_does(monkeypatch):
+    """A model too slow for conversation still has to be measurable, or the
+    probe reports a timeout instead of a number."""
+    from mochi.constants import SIGHT_PROBE_TIMEOUT, VISION_TIMEOUT
+
+    seen = {}
+    monkeypatch.setattr(sight, "encode", lambda frame: "X")
+
+    def fake(req, timeout):
+        seen["timeout"] = timeout
+        return Resp(json.dumps({"message": {"content": "two"}}).encode())
+
+    monkeypatch.setattr(sight, "urlopen", fake)
+    Eyes(Camera(), host="test", port=1).look("what")
+    assert seen["timeout"] == VISION_TIMEOUT
+    Eyes(Camera(), host="test", port=1, timeout=SIGHT_PROBE_TIMEOUT).look("what")
+    assert seen["timeout"] == SIGHT_PROBE_TIMEOUT > VISION_TIMEOUT

@@ -80,3 +80,36 @@ def test_an_html_error_page_is_words_not_a_crash(monkeypatch):
     monkeypatch.setattr(world, "fetch", lambda url: b"<html>502 Bad Gateway</html>")
     assert world.weather("Hyderabad") == OFFLINE_REPLY
     assert world.look_up("Alan Turing") == OFFLINE_REPLY
+
+def feed(*items):
+    body = "".join(
+        f"<item><title>{t}</title><pubDate>{d}</pubDate></item>" for t, d in items
+    )
+    return f"<rss><channel>{body}</channel></rss>".encode()
+
+def test_headlines_are_newest_first_across_every_feed(monkeypatch):
+    """Taking the first few from each feed in turn read yesterday evening out
+    before this morning, and repeated a story carried by both."""
+    from mochi.constants import NEWS_FEEDS
+
+    pages = {
+        NEWS_FEEDS[0]: feed(
+            ("Older local story", "Mon, 25 Aug 2026 08:00:00 +0000"),
+            ("Carried by both", "Thu, 28 Aug 2026 09:00:00 +0000"),
+        ),
+        NEWS_FEEDS[1]: feed(
+            ("Yesterday abroad", "Wed, 27 Aug 2026 08:00:00 +0000"),
+            ("Carried by both", "Thu, 28 Aug 2026 09:00:00 +0000"),
+        ),
+    }
+    monkeypatch.setattr(world, "fetch", lambda url: pages[url])
+    assert world.headlines(limit=3).split("; ") == [
+        "Carried by both",
+        "Yesterday abroad",
+        "Older local story",
+    ]
+
+def test_an_undated_headline_still_shows_up(monkeypatch):
+    page = b"<rss><channel><item><title>No date</title></item></channel></rss>"
+    monkeypatch.setattr(world, "fetch", lambda url: page)
+    assert "No date" in world.headlines()

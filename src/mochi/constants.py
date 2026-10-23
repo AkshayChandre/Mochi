@@ -105,6 +105,9 @@ BANNER_MARGIN = 0.82
 DB_PATH = "mochi.db"
 DB_TIMEOUT = 5.0
 FRAME_FLUSH = 3
+# a just-opened webcam returns black until exposure settles
+CAMERA_WARMUP = 1.5
+SIGHT_DEBUG_FILE = "sight.jpg"
 CAMERA_INDEX = 0
 ENROLL_FRAMES = 5
 FACE_MATCH_THRESHOLD = 0.45
@@ -126,9 +129,13 @@ AGENDA_NOT_FOUND = "I don't have anything like that on the calendar."
 
 # past this the answer has stopped being conversational
 VISION_TIMEOUT = 45
+# the robot gives up at VISION_TIMEOUT; the probe measures, so it waits long
+# enough to get a number even out of a model that is far too slow
+SIGHT_PROBE_TIMEOUT = 240
 # keep_alive is the idle unload, not a reservation: ollama still evicts this
-# for the chat model. Long enough for a follow-up look, then out of the way.
-VISION_KEEP_ALIVE = "30s"
+# for the chat model. A model too big for the card costs a minute to load, so
+# holding on to it beats handing the memory back.
+VISION_KEEP_ALIVE = "10m"
 VISION_OPTIONS = {"temperature": 0.2, "num_predict": 80}
 SIGHT_WIDTH = 640
 JPEG_QUALITY = 80
@@ -164,7 +171,7 @@ NEWS_FEEDS = (
     "https://www.thehindu.com/news/national/feeder/default.rss",
     "https://feeds.bbci.co.uk/news/world/rss.xml",
 )
-NEWS_LIMIT = 6
+NEWS_LIMIT = 10
 WIKI_SUMMARY_URL = "https://en.wikipedia.org/api/rest_v1/page/summary/{t}"
 WIKI_SEARCH_URL = (
     "https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={q}"
@@ -350,8 +357,8 @@ SYSTEM_PROMPT = (
     "You are told today's date before every message: use it to work out "
     "'tomorrow' or 'next Friday' yourself instead of asking. Call the time "
     "tool when you need the clock. "
-    "When you read out headlines, pick the two or three most interesting "
-    "and say those, not the whole list. "
+    "When you read out headlines, say the first four in the order you were "
+    "given, newest first, and add nothing to them. "
     "User messages are prefixed with the speaker's name and a colon when "
     "known; use those prefixes to remember who said what. "
     "You are a companion, not an assistant: warm, cheeky, curious, with "
