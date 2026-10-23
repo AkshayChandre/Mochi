@@ -309,7 +309,7 @@ def test_both_passes_are_counted_in_the_report(monkeypatch):
 
     bc = BrainClient(host="test", port=1)
     bc.toolbox = Box()
-    assert list(bc.chat_stream("news")) == ["Big news."]
+    assert list(bc.chat_stream("news"))[-1] == "Big news."
     assert bc.stats["prompt_eval_count"] == 1740
     assert bc.stats["eval_count"] == 20
     assert "1740" in bc.report(1.0)
@@ -552,3 +552,12 @@ def test_the_tool_answer_is_not_repeated_when_the_model_does_speak(monkeypatch):
     bc = BrainClient(host="test", port=1)
     bc.toolbox = Recorder("A hand.")
     assert list(bc.chat_stream("what is this")) == ["Let me have a look.", "It's your hand."]
+
+def test_the_slow_world_tools_say_something_first(monkeypatch):
+    """Fourteen seconds of silence while the model decides and the feed loads
+    reads as broken, same as it did for sight."""
+    seq = [tool_response("news"), stream_lines("[happy] Two big stories today.")]
+    monkeypatch.setattr(brain_client, "urlopen", lambda req, timeout: seq.pop(0))
+    bc = BrainClient(host="test", port=1)
+    bc.toolbox = Recorder("a; b; c")
+    assert list(bc.chat_stream("news?"))[0] == "Let me check the headlines."

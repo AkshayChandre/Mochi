@@ -4,9 +4,10 @@ brain:
   model: qwen2.5:7b
 
 vision:
-  # moondream fits a 2GB card but read four fingers as two. qwen2.5vl is
-  # bigger than the card, so part of it runs on CPU: slower, but it counts.
-  model: qwen2.5vl:3b
+  # the only vision model that fits a 2GB MX450. It miscounts (read four
+  # fingers as two) but answers in seconds; qwen2.5vl:3b is right and takes
+  # nearly two minutes, because 3GB of weights do not fit and spill to CPU.
+  model: moondream
 
 # redis:
 #   host: 127.0.0.1

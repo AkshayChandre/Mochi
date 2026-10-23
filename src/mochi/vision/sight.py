@@ -63,8 +63,6 @@ class Eyes:
             "model": self.model,
             "messages": [{"role": "user", "content": question.strip(), "images": [picture]}],
             "stream": False,
-            # short, so the chat model can have its memory back on machines
-            # where the two do not fit at once
             "keep_alive": VISION_KEEP_ALIVE,
             "options": VISION_OPTIONS,
         }

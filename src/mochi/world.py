@@ -44,10 +44,11 @@ def weather(place: str) -> str:
         return OFFLINE_REPLY
     now, day = data.get("current", {}), data.get("daily", {})
     where = ", ".join(filter(None, (spot.get("name"), spot.get("country"))))
-    sky = WEATHER_CODES.get(int(now.get("weather_code", -1)), "hard to describe")
-    parts = [f"{where}: {round(now.get('temperature_2m', 0))} degrees, {sky}"]
+    # a reading can come back present but null, which .get(key, default) sails past
+    sky = WEATHER_CODES.get(int(now.get("weather_code") or -1), "hard to describe")
+    parts = [f"{where}: {round(now.get('temperature_2m') or 0)} degrees, {sky}"]
     highs, lows = day.get("temperature_2m_max") or [], day.get("temperature_2m_min") or []
-    if highs and lows:
+    if highs and lows and None not in (highs[0], lows[0]):
         parts.append(f"today {round(lows[0])} to {round(highs[0])}")
     if (feels := now.get("apparent_temperature")) is not None:
         parts.append(f"feels like {round(feels)}")

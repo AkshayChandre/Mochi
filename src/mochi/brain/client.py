@@ -183,7 +183,7 @@ class BrainClient:
         # the end, so the whole prompt above the new question stays
         # byte-identical and ollama re-reads none of it. Putting it anywhere
         # further down shifts the messages under it and costs a full re-read
-        # of the system prompt and all 17 tool schemas, every single turn.
+        # of the system prompt and every tool schema, on every single turn.
         msgs.insert(1, {"role": "system", "content": self.note()})
         self.stats = {}
         self.first_word = None
@@ -220,7 +220,7 @@ class BrainClient:
         )
 
     def warm_up(self) -> None:
-        """The system prompt and 17 tool schemas cost ~20s to read on a cold
+        """The system prompt and the tool schemas cost ~20s to read on a cold
         cache, and the owner pays it on their first question. Send the same
         prefix at startup so ollama has it cached before anyone speaks."""
         msgs = [
